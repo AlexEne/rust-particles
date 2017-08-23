@@ -1,0 +1,10 @@
+[package]
+name = "rust_particles"
+version = "0.1.0"
+authors = ["Alexandru Ene<alex.ene0x11@gmail.com>"]
+build = "build.rs"
+
+[dependencies]
+gl = "0.6.0"
+sdl2 = "*"
+rand = "0.3"
