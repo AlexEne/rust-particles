@@ -1,8 +1,11 @@
 extern crate sdl2;
 extern crate gl;
 extern crate rand;
-use gl::types::*;
-use sdl2::pixels::Color;
+
+mod particle_system;
+
+use particle_system::ParticleSystem;
+
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
@@ -13,36 +16,13 @@ use std::vec;
 use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 
-struct Particle{
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32
-}
-
-struct ParticleSystem {
-    particles: Vec<Particle>
-}
-
-impl ParticleSystem {
-    fn new(particle_count: usize) -> Self {
-        ParticleSystem {
-            particles: Vec::with_capacity(particle_count)
-        }
-    }
-
-    pub fn update(& self, dt: f64) {
-        
-    }
-}
-
 
 fn update(dt: f64) {
 
 }
 
 
-fn render() {
+fn render(particle_system: &ParticleSystem) {
     let mut rng = rand::thread_rng();
     let range = Range::new(0.0, 0.2);
 
@@ -53,7 +33,12 @@ fn render() {
     unsafe { 
         gl::Viewport(0, 0, 1600, 900);
         gl::ClearColor(r, g, b, 1.0);
-        gl::Clear(gl::COLOR_BUFFER_BIT); 
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); 
+    }
+
+    particle_system.render();
+
+    unsafe {
         gl::Flush();
     }
 }
@@ -82,11 +67,12 @@ fn main() {
     println!("Started with GL version: {:?}", gl_attr.context_version());
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
+
     video_subsystem.gl_set_swap_interval(1);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let particle_system = ParticleSystem::new(1);
+    let particle_system = ParticleSystem::new(10);
     
     let mut prev_time = Instant::now();
 
@@ -106,7 +92,8 @@ fn main() {
         prev_time = time_now;
         update(dt_sec);
         
-        render();
+        render(&particle_system);
+
         window.gl_swap_window();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32/60));
