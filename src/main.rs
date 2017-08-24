@@ -61,6 +61,7 @@ fn main() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
     let particle_system = ParticleSystem::new(10);
     render(&particle_system);
     
@@ -82,7 +83,7 @@ fn main() {
         prev_time = time_now;
         update(dt_sec);
         
-        render(&particle_system);
+        //render(&particle_system);
 
         window.gl_swap_window();
 

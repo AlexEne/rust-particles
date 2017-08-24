@@ -1,4 +1,7 @@
 use gl;
+use std;
+use std::ffi::CString;
+
 
 #[derive(Debug)]
 pub enum ShaderType {
@@ -28,18 +31,30 @@ impl Shader {
         unsafe {
             self.object_id = gl::CreateShader(self.get_gl_shader_type());
             
-            let mut success = 0i32;
-            gl::GetShaderiv(self.object_id, gl::COMPILE_STATUS, &mut success);
+            let shader_str = CString::new(self.source.as_bytes()).unwrap();
+            gl::ShaderSource(self.object_id, 1, &shader_str.as_ptr(), std::ptr::null());
             
-            if success != 1 {
-                let mut info_log = String::with_capacity(256);
-                let mut error_size = 0i32;
-                gl::GetShaderInfoLog(self.object_id, 512, &mut error_size, info_log.as_ptr() as _);
-                println!("Error shader compilation failed with error: {:?} for:\n {:?}", 
-                    info_log, self.source);
+            gl::CompileShader(self.object_id);
+
+            let mut status = gl::FALSE as gl::types::GLint;
+            gl::GetShaderiv(self.object_id, gl::COMPILE_STATUS, &mut status);
+            
+            if status != (gl::TRUE as gl::types::GLint) {
+                let mut len = 0;
+                gl::GetShaderiv(self.object_id, gl::INFO_LOG_LENGTH, &mut len);
+
+                let mut buf = Vec::with_capacity(len as usize);
+                buf.set_len((len as usize) - 1); // subtract 1 to skip the trailing null character
+                gl::GetShaderInfoLog(self.object_id,
+                                     len,
+                                     std::ptr::null_mut(),
+                                     buf.as_mut_ptr() as *mut gl::types::GLchar);
+                
+                println!("Failed to compile :\n{}", self.source);                 
+                panic!("{}", std::str::from_utf8(&buf).unwrap());
             }
             else {
-                println!("Shader compiled successfully!");
+                println!("Shader compiled successfully! \n {}", self.source);
             }
         }
     }

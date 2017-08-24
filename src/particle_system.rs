@@ -38,7 +38,7 @@ impl ParticleSystem {
             println!("{:?}", particle);
             system.particles.push(particle);
         }
-
+        
         system
     }
 
@@ -53,7 +53,7 @@ impl ParticleSystem {
              0.0,  0.5, 0.0
         ];
 
-        let mut VBO: u32 = 0;
+        let mut VBO = 0u32;
         unsafe {
             gl::GenBuffers(1, &mut VBO);
             gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
@@ -63,5 +63,16 @@ impl ParticleSystem {
             
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         }
+
+        let source = "
+        #version 330 core
+        layout (location = 0) in vec3 aPos;
+
+        void main()
+        {
+            gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+        }";
+        let mut shader = shader::Shader::new(shader::ShaderType::Vertex, source);
+        shader.compile();
     }
 }
