@@ -3,6 +3,7 @@ extern crate gl;
 extern crate rand;
 
 mod particle_system;
+mod shader;
 
 use particle_system::ParticleSystem;
 
@@ -11,10 +12,6 @@ use sdl2::keyboard::Keycode;
 
 use std::time::Instant;
 use std::time::Duration;
-use std::vec;
-
-use rand::Rng;
-use rand::distributions::{IndependentSample, Range};
 
 
 fn update(dt: f64) {
@@ -23,16 +20,9 @@ fn update(dt: f64) {
 
 
 fn render(particle_system: &ParticleSystem) {
-    let mut rng = rand::thread_rng();
-    let range = Range::new(0.0, 0.2);
-
-    let r = range.ind_sample(&mut rng);
-    let g = range.ind_sample(&mut rng);
-    let b = range.ind_sample(&mut rng);
-
     unsafe { 
         gl::Viewport(0, 0, 1600, 900);
-        gl::ClearColor(r, g, b, 1.0);
+        gl::ClearColor(0.2, 0.2, 0.2, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); 
     }
 
@@ -42,7 +32,6 @@ fn render(particle_system: &ParticleSystem) {
         gl::Flush();
     }
 }
-
 
 fn main() {
     
@@ -73,6 +62,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let particle_system = ParticleSystem::new(10);
+    render(&particle_system);
     
     let mut prev_time = Instant::now();
 
