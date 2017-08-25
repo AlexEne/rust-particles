@@ -12,7 +12,8 @@ use sdl2::keyboard::Keycode;
 
 use std::time::Instant;
 use std::time::Duration;
-
+use std::os::raw::c_void;
+use std::os::raw::c_char;
 
 fn update(dt: f64) {
 
@@ -33,6 +34,21 @@ fn render(particle_system: &ParticleSystem) {
     }
 }
 
+#[no_mangle]
+pub extern "system" fn debug_callback(source: gl::types::GLenum,
+        err_type: gl::types::GLenum,
+        id: gl::types::GLuint,
+        severity: gl::types::GLenum,
+        length: gl::types::GLsizei,
+        message: *const c_char,
+        userParam: *mut c_void) {
+
+    unsafe{
+        let err_text = std::ffi::CStr::from_ptr(message);
+        println!("Type: {:?} ID: {:?} Severity: {:?}:\n  {:#?}", err_type, id, severity, err_text.to_str().unwrap())
+    }
+}
+
 fn main() {
     
     let sdl_context = sdl2::init().unwrap();
@@ -40,9 +56,8 @@ fn main() {
     let gl_attr = video_subsystem.gl_attr();
 
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-    
     // Set the context into debug mode
-    //gl_attr.set_context_flags().debug().set();
+    gl_attr.set_context_flags().debug().set();
 
     gl_attr.set_context_version(4, 3);
 
@@ -56,6 +71,7 @@ fn main() {
     println!("Started with GL version: {:?}", gl_attr.context_version());
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
+    unsafe { gl::DebugMessageCallback(debug_callback, std::ptr::null()) };
 
     video_subsystem.gl_set_swap_interval(1);
 
@@ -78,7 +94,7 @@ fn main() {
         }
 
         let time_now = Instant::now();
-        let dt = (time_now - prev_time);
+        let dt = time_now - prev_time;
         let dt_sec = dt.as_secs() as f64 + dt.subsec_nanos() as f64 * 1e-9;
         prev_time = time_now;
         update(dt_sec);

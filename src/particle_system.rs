@@ -3,7 +3,9 @@ use rand::distributions::{IndependentSample, Range};
 use rand;
 use gl;
 use std;
-use shader;
+use shader::Shader;
+use shader::ShaderProgram;
+use shader::ShaderType;
 
 #[derive(Debug)]
 struct Particle {
@@ -15,14 +17,12 @@ struct Particle {
 
 pub struct ParticleSystem {
     particles: Vec<Particle>,
-    shader_program: shader::Shader
 }
 
 impl ParticleSystem {
-    pub fn new(particle_count: usize) -> Self {
+    pub fn new(particle_count: usize) -> ParticleSystem {
         let mut system = ParticleSystem {
             particles: Vec::with_capacity(particle_count),
-            shader_program: shader::Shader::default()
         };
 
         let mut rng = rand::thread_rng();
@@ -35,7 +35,7 @@ impl ParticleSystem {
                 z : range.ind_sample(&mut rng),
                 w : 0.0
             };
-            println!("{:?}", particle);
+
             system.particles.push(particle);
         }
         
@@ -64,15 +64,15 @@ impl ParticleSystem {
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         }
 
-        let source = "
-        #version 330 core
-        layout (location = 0) in vec3 aPos;
+        let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
+        vertex_shader.compile();
 
-        void main()
-        {
-            gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-        }";
-        let mut shader = shader::Shader::new(shader::ShaderType::Vertex, source);
-        shader.compile();
+        let mut fragment_shader = Shader::new(ShaderType::Fragment, "shaders/pixel_shader.p.glsl");
+        fragment_shader.compile();
+
+        let mut shader_program = ShaderProgram::new();
+        shader_program.attach_shader(&vertex_shader);
+        shader_program.attach_shader(&fragment_shader);
+        shader_program.link();
     }
 }
