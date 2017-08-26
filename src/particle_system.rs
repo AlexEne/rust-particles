@@ -17,12 +17,16 @@ struct Particle {
 
 pub struct ParticleSystem {
     particles: Vec<Particle>,
+    draw_shader_program: ShaderProgram,
+    vao_handle: u32
 }
 
 impl ParticleSystem {
     pub fn new(particle_count: usize) -> ParticleSystem {
         let mut system = ParticleSystem {
             particles: Vec::with_capacity(particle_count),
+            draw_shader_program: ShaderProgram::new(),
+            vao_handle: 0
         };
 
         let mut rng = rand::thread_rng();
@@ -46,23 +50,34 @@ impl ParticleSystem {
         
     }
 
-    pub fn render(&self) {
-        let vertices = vec![
+    pub fn init_graphics_resources(&mut self) {
+        let vertices: Vec<f32> = vec!(
             -0.5, -0.5, 0.0,
              0.5, -0.5, 0.0,
              0.0,  0.5, 0.0
-        ];
+        );
 
-        let mut VBO = 0u32;
+        //Vertex Array Object
+        // Init code
         unsafe {
-            gl::GenBuffers(1, &mut VBO);
-            gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
+            gl::GenVertexArrays(1, &mut self.vao_handle); 
+            gl::BindVertexArray(self.vao_handle);
+            
+            let mut vbo = 0u32;
+            gl::GenBuffers(1, &mut vbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(gl::ARRAY_BUFFER, 
-                vertices.len() as isize,
+                (vertices.len() * 4) as isize, 
                 vertices.as_ptr() as *const _, gl::STATIC_DRAW);
             
-            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+            //Describe data at location 0
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3*4, std::ptr::null());
+            
+            //Enable vertex attrib at location 0
+            //0 comes from location = 0, in the vertex shader code.
+            gl::EnableVertexAttribArray(0);
         }
+
 
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
         vertex_shader.compile();
@@ -70,9 +85,19 @@ impl ParticleSystem {
         let mut fragment_shader = Shader::new(ShaderType::Fragment, "shaders/pixel_shader.p.glsl");
         fragment_shader.compile();
 
-        let mut shader_program = ShaderProgram::new();
-        shader_program.attach_shader(&vertex_shader);
-        shader_program.attach_shader(&fragment_shader);
-        shader_program.link();
+        self.draw_shader_program.attach_shader(&vertex_shader);
+        self.draw_shader_program.attach_shader(&fragment_shader);
+        self.draw_shader_program.link();
+
+    }
+  
+    pub fn render(&self) {
+
+        self.draw_shader_program.use_program();
+
+        unsafe {
+            gl::BindVertexArray(self.vao_handle);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+        }    
     }
 }

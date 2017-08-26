@@ -71,15 +71,20 @@ fn main() {
     println!("Started with GL version: {:?}", gl_attr.context_version());
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
-    unsafe { gl::DebugMessageCallback(debug_callback, std::ptr::null()) };
+    unsafe { 
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA); 
+        gl::Enable(gl::BLEND);
+
+        gl::DebugMessageCallback(debug_callback, std::ptr::null()) 
+    };
 
     video_subsystem.gl_set_swap_interval(1);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
-    let particle_system = ParticleSystem::new(10);
-    render(&particle_system);
+    let mut particle_system = ParticleSystem::new(10);
+    particle_system.init_graphics_resources();
     
     let mut prev_time = Instant::now();
 
@@ -99,8 +104,7 @@ fn main() {
         prev_time = time_now;
         update(dt_sec);
         
-        //render(&particle_system);
-
+        render(&particle_system);
         window.gl_swap_window();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32/60));
