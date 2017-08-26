@@ -1,4 +1,3 @@
-use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 use rand;
 use gl;
@@ -7,7 +6,6 @@ use shader::Shader;
 use shader::ShaderProgram;
 use shader::ShaderType;
 use super::graphics::vao::VAO;
-use super::graphics::vao::VBO;
 
 #[derive(Debug)]
 struct Particle {
@@ -59,7 +57,6 @@ impl ParticleSystem {
              0.0,  0.5, 0.0
         );
         
-        //TODO ownership of vertices ?
         self.vao.set_buffer(&vertices, 0);
 
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
