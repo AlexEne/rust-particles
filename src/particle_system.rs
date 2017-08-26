@@ -76,12 +76,23 @@ impl ParticleSystem {
     pub fn render(&self) {
 
         self.draw_shader_program.use_program();
-        let elapsed = self.now.elapsed().as_secs();
-        let colorg = (elapsed % 10) as f32 / 10.0f32;
+        let elapsed = self.now.elapsed().as_milis();
+        println!("{}", elapsed);
+        let colorg = (elapsed % 1000) as f32 / 1000.0f32;
         self.draw_shader_program.set_uniform4f("vtxColor", &[0.3, colorg, 0.3, 1.0]);
         unsafe {
             self.vao.bind();
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }    
+    }
+}
+
+trait Miliseconds {
+    fn as_milis(&self) -> u64;
+}
+
+impl Miliseconds for std::time::Duration {
+    fn as_milis(&self) -> u64 {
+        (self.as_secs() as f64 * 1000.0f64 + self.subsec_nanos() as f64 * 1e-6) as u64
     }
 }

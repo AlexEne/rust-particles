@@ -106,7 +106,7 @@ fn main() {
 
         let time_now = Instant::now();
         let dt = time_now - prev_time;
-        let dt_sec = dt.as_secs() as f64 + dt.subsec_nanos() as f64 * 1e-9;
+        let dt_sec: f64 = dt.as_secs_f64();
         prev_time = time_now;
         update(dt_sec);
         
@@ -116,4 +116,21 @@ fn main() {
         std::thread::sleep(Duration::new(0, 1_000_000_000u32/60));
     }
 
+}
+
+
+trait Miliseconds {
+    fn as_milis(&self) -> u64;
+    fn as_secs_f64(&self) -> f64;
+}
+
+
+impl Miliseconds for std::time::Duration {
+    fn as_milis(&self) -> u64 {
+        (self.as_secs() as f64 * 1000.0f64 + self.subsec_nanos() as f64 * 1e-6) as u64
+    }
+
+    fn as_secs_f64(&self) -> f64 {
+         self.as_secs() as f64 + self.subsec_nanos() as f64 * 1e-9
+    }
 }

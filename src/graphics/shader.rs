@@ -67,6 +67,8 @@ impl ShaderProgram {
     }
 
     pub fn set_uniform4f(&self, name: &str, values: &[f32]) {
+        assert!(values.len() == 4);
+
         let location = self.get_uniform_location(name);
         unsafe {
             gl::Uniform4f(location, values[0], values[1], values[2], values[3]);
