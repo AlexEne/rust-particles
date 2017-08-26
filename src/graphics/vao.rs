@@ -39,7 +39,7 @@ impl VAO {
         }
     }
 
-    pub fn set_buffer(&self, data : &Vec<f32>, location: u32) {
+    pub fn set_buffer(&self, data : &Vec<f32>, location: u32, stride: u32) {
         self.bind();
         let mut gl_handle = 0u32;
         unsafe {
@@ -51,7 +51,7 @@ impl VAO {
                 data.as_ptr() as *const _, gl::STATIC_DRAW);
 
             //Describe data at that location
-            gl::VertexAttribPointer(location, 3, gl::FLOAT, gl::FALSE, 3*4, std::ptr::null());
+            gl::VertexAttribPointer(location, 3, gl::FLOAT, gl::FALSE, stride as i32, std::ptr::null());
             
             //Enable vertex attrib at location
             //This is the same as "location = bla", in the vertex shader code.

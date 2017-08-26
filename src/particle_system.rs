@@ -60,12 +60,12 @@ impl ParticleSystem {
 
     pub fn init_graphics_resources(&mut self) {
         let vertices: Vec<f32> = vec!(
-            -0.5, -0.5, 0.0,
-             0.5, -0.5, 0.0,
-             0.0,  0.5, 0.0
+            -0.5, -0.5, 0.0, 0.0,
+             0.5, -0.5, 0.0, 0.0,
+             0.0,  0.5, 0.0, 0.0
         );
         
-        self.vao.set_buffer(&vertices, 0);
+        self.vao.set_buffer(&vertices, 0, 4*4);
 
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
         vertex_shader.compile();
