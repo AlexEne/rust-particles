@@ -7,6 +7,9 @@ use shader::ShaderProgram;
 use shader::ShaderType;
 use super::graphics::vao::VAO;
 use super::Miliseconds;
+use cgmath;
+use cgmath::SquareMatrix;
+use cgmath::Matrix4;
 
 #[derive(Debug)]
 struct Particle {
@@ -49,8 +52,10 @@ impl ParticleSystem {
         system
     }
 
-    pub fn update(& self, dt: f64) {
-        
+    pub fn update(&mut self, dt: f64) {
+        for particle in &mut self.particles {
+            particle.z += (-100.0 * dt) as f32;
+        }
     }
 
     pub fn init_graphics_resources(&mut self) {
@@ -77,11 +82,18 @@ impl ParticleSystem {
     pub fn render(&self) {
 
         self.draw_shader_program.use_program();
+
         let elapsed = self.now.elapsed().as_milis();
         let colorg = (elapsed % 1000) as f32 / 1000.0f32;
-        self.draw_shader_program.set_uniform4f("vtxColor", &[0.3, colorg, 0.3, 1.0]);
+        self.draw_shader_program.set_uniform4f("vtx_color", &[0.3, colorg, 0.3, 1.0]);
+        
+        let identity_mtx = cgmath::Matrix4::<f32>::identity();
+        self.draw_shader_program.set_uniform_matrix4("view_from_world", identity_mtx.as_ref());
+        self.draw_shader_program.set_uniform_matrix4("proj_from_view", identity_mtx.as_ref());
+
+        self.vao.bind();
+
         unsafe {
-            self.vao.bind();
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }    
     }

@@ -66,12 +66,17 @@ impl ShaderProgram {
         }
     }
 
-    pub fn set_uniform4f(&self, name: &str, values: &[f32]) {
-        assert!(values.len() == 4);
-
+    pub fn set_uniform4f(&self, name: &str, values: &[f32; 4]) {
         let location = self.get_uniform_location(name);
         unsafe {
             gl::Uniform4f(location, values[0], values[1], values[2], values[3]);
+        }
+    }
+
+    pub fn set_uniform_matrix4(&self, name: &str, values: &[f32; 16]) {
+        let location = self.get_uniform_location(name);
+        unsafe {
+            gl::UniformMatrix4fv(location, 1, gl::FALSE, values.as_ptr() as *const _);
         }
     }
 

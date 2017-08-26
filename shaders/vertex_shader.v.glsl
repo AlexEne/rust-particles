@@ -31,10 +31,15 @@ void main()
 }
 */
 
-#version 330 core
-layout (location = 0) in vec3 aPos;
+#version 430 core
+layout (location = 0) in vec4 position;
+
+uniform mat4 view_from_world;
+uniform mat4 proj_from_view;
 
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    vec4 viewPos = view_from_world * vec4(position.xyz, 1.0);
+    gl_Position = proj_from_view * viewPos;
+    gl_Position = vec4(position.x, position.y, position.z, 1.0);
 }

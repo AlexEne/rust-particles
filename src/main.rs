@@ -1,6 +1,7 @@
 extern crate sdl2;
 extern crate gl;
 extern crate rand;
+extern crate cgmath;
 
 mod particle_system;
 mod graphics;
@@ -105,9 +106,9 @@ fn main() {
         }
 
         let time_now = Instant::now();
-        let dt = time_now - prev_time;
-        let dt_sec: f64 = dt.as_secs_f64();
+        let dt_sec = (time_now - prev_time).as_secs_f64();
         prev_time = time_now;
+        
         update(dt_sec);
         
         render(&particle_system);
@@ -127,7 +128,7 @@ trait Miliseconds {
 
 impl Miliseconds for std::time::Duration {
     fn as_milis(&self) -> u64 {
-        (self.as_secs() as f64 * 1000.0f64 + self.subsec_nanos() as f64 * 1e-6) as u64
+        (self.as_secs() as f64 * 1000.0 + self.subsec_nanos() as f64 * 1e-6) as u64
     }
 
     fn as_secs_f64(&self) -> f64 {

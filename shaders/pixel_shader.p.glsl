@@ -8,12 +8,12 @@
 // 	FragColor = vtxColor; 
 // }
 
-#version 330 core
+#version 430 core
 out vec4 FragColor;
 
-uniform vec4 vtxColor;
+uniform vec4 vtx_color;
 
 void main()
 {
-    FragColor = vtxColor;
+    FragColor = vtx_color;
 } 
