@@ -65,6 +65,20 @@ impl ShaderProgram {
             gl::UseProgram(self.gl_handle);
         }
     }
+
+    pub fn set_uniform4f(&self, name: &str, values: &[f32]) {
+        let location = self.get_uniform_location(name);
+        unsafe {
+            gl::Uniform4f(location, values[0], values[1], values[2], values[3]);
+        }
+    }
+
+    fn get_uniform_location(&self, name: &str) -> i32 {
+        unsafe {
+            let c_name = std::ffi::CString::new(name).unwrap();
+            gl::GetUniformLocation(self.gl_handle, c_name.as_ptr())
+        }
+    }
 }
 
 

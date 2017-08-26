@@ -18,7 +18,8 @@ struct Particle {
 pub struct ParticleSystem {
     particles: Vec<Particle>,
     draw_shader_program: ShaderProgram,
-    vao: VAO
+    vao: VAO,
+    now: std::time::Instant
 }
 
 impl ParticleSystem {
@@ -26,7 +27,8 @@ impl ParticleSystem {
         let mut system = ParticleSystem {
             particles: Vec::with_capacity(particle_count),
             draw_shader_program: ShaderProgram::new(),
-            vao: VAO::new()
+            vao: VAO::new(),
+            now: std::time::Instant::now()
         };
 
         let mut rng = rand::thread_rng();
@@ -74,7 +76,9 @@ impl ParticleSystem {
     pub fn render(&self) {
 
         self.draw_shader_program.use_program();
-
+        let elapsed = self.now.elapsed().as_secs();
+        let colorg = (elapsed % 10) as f32 / 10.0f32;
+        self.draw_shader_program.set_uniform4f("vtxColor", vec![0.3, colorg, 0.3, 1.0].as_slice());
         unsafe {
             self.vao.bind();
             gl::DrawArrays(gl::TRIANGLES, 0, 3);

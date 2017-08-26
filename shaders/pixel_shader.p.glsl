@@ -11,7 +11,9 @@
 #version 330 core
 out vec4 FragColor;
 
+uniform vec4 vtxColor;
+
 void main()
 {
-    FragColor = vec4(1.0f, 0.3f, 0.2f, 0.3f);
+    FragColor = vtxColor;
 } 
