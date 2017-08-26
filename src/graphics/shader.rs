@@ -60,10 +60,14 @@ impl ShaderProgram {
         }
     }
 
-    pub fn use_program(&self) {
+    pub fn start_use(&self) {
         unsafe {
             gl::UseProgram(self.gl_handle);
         }
+    }
+
+    pub fn stop_use(&self) {
+        unsafe { gl::UseProgram(0); }
     }
 
     pub fn set_uniform4f(&self, name: &str, values: &[f32; 4]) {

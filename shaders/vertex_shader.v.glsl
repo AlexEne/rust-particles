@@ -8,10 +8,7 @@ in layout (location = 1) vec3 color;
 uniform mat4 ViewMtx;
 uniform mat4 ProjMtx;
 
-out vData
-{
-    vec4 transformedColor;
-} v_color;
+
 
 
 void main()
@@ -32,6 +29,11 @@ void main()
 */
 
 #version 430 core
+out vData
+{
+    vec4 transformedColor;
+} v_color;
+
 layout (location = 0) in vec4 position;
 
 uniform mat4 view_from_world;
@@ -42,4 +44,5 @@ void main()
     vec4 viewPos = view_from_world * vec4(position.xyz, 1.0);
     gl_Position = proj_from_view * viewPos;
     gl_Position = vec4(position.x, position.y, position.z, 1.0);
+    v_color.transformedColor = vec4(0.0, 1.0, 1.0, 1.0);
 }

@@ -50,10 +50,6 @@ pub extern "system" fn debug_callback(source: gl::types::GLenum,
         let err_text = std::ffi::CStr::from_ptr(message);
         println!("Type: {:#x} ID: {:#x} Severity: {:#x}:\n  {:#?}", err_type, id, severity, err_text.to_str().unwrap())
     }
-
-    if severity >= gl::DEBUG_SEVERITY_HIGH {
-        panic!();
-    }
 }
 
 fn main() {

@@ -73,15 +73,19 @@ impl ParticleSystem {
         let mut fragment_shader = Shader::new(ShaderType::Fragment, "shaders/pixel_shader.p.glsl");
         fragment_shader.compile();
 
+        let mut geometry_shader = Shader::new(ShaderType::Geometry, "shaders/geometry_shader.g.glsl");
+        geometry_shader.compile();
+
         self.draw_shader_program.attach_shader(&vertex_shader);
         self.draw_shader_program.attach_shader(&fragment_shader);
+        self.draw_shader_program.attach_shader(&geometry_shader);
         self.draw_shader_program.link();
 
     }
   
     pub fn render(&self) {
 
-        self.draw_shader_program.use_program();
+        self.draw_shader_program.start_use();
 
         let elapsed = self.now.elapsed().as_milis();
         let colorg = (elapsed % 1000) as f32 / 1000.0f32;
@@ -94,8 +98,10 @@ impl ParticleSystem {
         self.vao.bind();
 
         unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawArrays(gl::POINTS, 0, 3);
         }    
+
+        self.draw_shader_program.stop_use();
     }
 }
 
