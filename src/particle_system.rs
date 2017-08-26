@@ -78,7 +78,7 @@ impl ParticleSystem {
         self.draw_shader_program.use_program();
         let elapsed = self.now.elapsed().as_secs();
         let colorg = (elapsed % 10) as f32 / 10.0f32;
-        self.draw_shader_program.set_uniform4f("vtxColor", vec![0.3, colorg, 0.3, 1.0].as_slice());
+        self.draw_shader_program.set_uniform4f("vtxColor", &[0.3, colorg, 0.3, 1.0]);
         unsafe {
             self.vao.bind();
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
