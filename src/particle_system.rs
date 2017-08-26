@@ -6,6 +6,8 @@ use std;
 use shader::Shader;
 use shader::ShaderProgram;
 use shader::ShaderType;
+use super::graphics::vao::VAO;
+use super::graphics::vao::VBO;
 
 #[derive(Debug)]
 struct Particle {
@@ -18,7 +20,7 @@ struct Particle {
 pub struct ParticleSystem {
     particles: Vec<Particle>,
     draw_shader_program: ShaderProgram,
-    vao_handle: u32
+    vao: VAO
 }
 
 impl ParticleSystem {
@@ -26,7 +28,7 @@ impl ParticleSystem {
         let mut system = ParticleSystem {
             particles: Vec::with_capacity(particle_count),
             draw_shader_program: ShaderProgram::new(),
-            vao_handle: 0
+            vao: VAO::new()
         };
 
         let mut rng = rand::thread_rng();
@@ -56,28 +58,9 @@ impl ParticleSystem {
              0.5, -0.5, 0.0,
              0.0,  0.5, 0.0
         );
-
-        //Vertex Array Object
-        // Init code
-        unsafe {
-            gl::GenVertexArrays(1, &mut self.vao_handle); 
-            gl::BindVertexArray(self.vao_handle);
-            
-            let mut vbo = 0u32;
-            gl::GenBuffers(1, &mut vbo);
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-            gl::BufferData(gl::ARRAY_BUFFER, 
-                (vertices.len() * 4) as isize, 
-                vertices.as_ptr() as *const _, gl::STATIC_DRAW);
-            
-            //Describe data at location 0
-            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3*4, std::ptr::null());
-            
-            //Enable vertex attrib at location 0
-            //0 comes from location = 0, in the vertex shader code.
-            gl::EnableVertexAttribArray(0);
-        }
-
+        
+        //TODO ownership of vertices ?
+        self.vao.set_buffer(&vertices, 0);
 
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
         vertex_shader.compile();
@@ -96,7 +79,7 @@ impl ParticleSystem {
         self.draw_shader_program.use_program();
 
         unsafe {
-            gl::BindVertexArray(self.vao_handle);
+            self.vao.bind();
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }    
     }

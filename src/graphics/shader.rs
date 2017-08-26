@@ -37,9 +37,9 @@ impl ShaderProgram {
     }
 
     pub fn attach_shader(&mut self, shader: &Shader) {
-        unsafe { 
+        unsafe {
             let t = get_gl_shader_type(&shader.shader_type);
-            println!("Attaching shader of type {}, handle:{} to program {}", 
+            println!("Attaching shader of type {}, handle:{} to program {}",
                 t, shader.gl_handle, self.gl_handle);
             gl::AttachShader(self.gl_handle, shader.gl_handle);
         }
@@ -52,7 +52,7 @@ impl ShaderProgram {
             let mut success = gl::FALSE as gl::types::GLint;
             gl::GetProgramiv(self.gl_handle, gl::LINK_STATUS, &mut success);
             if success != gl::TRUE as gl::types::GLint {
-                println!("Failed to link: {} ", self.gl_handle);                
+                println!("Failed to link: {} ", self.gl_handle);
             }
             else {
                 println!("Linked successfully {}", self.gl_handle);

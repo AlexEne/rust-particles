@@ -3,8 +3,9 @@ extern crate gl;
 extern crate rand;
 
 mod particle_system;
-mod shader;
+mod graphics;
 
+use graphics::shader;
 use particle_system::ParticleSystem;
 
 use sdl2::event::Event;
@@ -14,6 +15,7 @@ use std::time::Instant;
 use std::time::Duration;
 use std::os::raw::c_void;
 use std::os::raw::c_char;
+
 
 fn update(dt: f64) {
 
@@ -45,7 +47,11 @@ pub extern "system" fn debug_callback(source: gl::types::GLenum,
 
     unsafe{
         let err_text = std::ffi::CStr::from_ptr(message);
-        println!("Type: {:?} ID: {:?} Severity: {:?}:\n  {:#?}", err_type, id, severity, err_text.to_str().unwrap())
+        println!("Type: {:#x} ID: {:#x} Severity: {:#x}:\n  {:#?}", err_type, id, severity, err_text.to_str().unwrap())
+    }
+
+    if severity >= gl::DEBUG_SEVERITY_HIGH {
+        panic!();
     }
 }
 
