@@ -50,11 +50,11 @@ impl VAO {
                 (data.len() * 4) as isize, 
                 data.as_ptr() as *const _, gl::STATIC_DRAW);
 
-            //Describe data at location 0
+            //Describe data at that location
             gl::VertexAttribPointer(location, 3, gl::FLOAT, gl::FALSE, 3*4, std::ptr::null());
             
-            //Enable vertex attrib at location 0
-            //0 comes from location = 0, in the vertex shader code.
+            //Enable vertex attrib at location
+            //This is the same as "location = bla", in the vertex shader code.
             gl::EnableVertexAttribArray(location);
         }
         self.unbind();

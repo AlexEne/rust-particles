@@ -124,23 +124,6 @@ fn get_gl_shader_type(shader_type: &ShaderType) -> gl::types::GLenum {
 }
 
 
-fn get_gl_error(gl_handle: u32) -> String {
-    unsafe {
-        let mut len = 0;
-        gl::GetShaderiv(gl_handle, gl::INFO_LOG_LENGTH, &mut len);
-
-        let mut buf = Vec::with_capacity(len as usize);
-        buf.set_len((len as usize) - 1); // subtract 1 to skip the trailing null character
-        gl::GetShaderInfoLog(gl_handle,
-                             len,
-                             std::ptr::null_mut(),
-                             buf.as_mut_ptr() as *mut gl::types::GLchar);
-        
-        std::str::from_utf8(&buf).unwrap().to_string()
-    }
-}
-
-
 impl Default for ShaderType {
     fn default() -> Self {
         ShaderType::Vertex
