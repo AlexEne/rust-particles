@@ -18,11 +18,6 @@ use std::os::raw::c_void;
 use std::os::raw::c_char;
 
 
-fn update(dt: f64) {
-
-}
-
-
 fn render(particle_system: &ParticleSystem) {
     unsafe { 
         gl::Viewport(0, 0, 1600, 900);
@@ -36,6 +31,7 @@ fn render(particle_system: &ParticleSystem) {
         gl::Flush();
     }
 }
+
 
 #[no_mangle]
 pub extern "system" fn debug_callback(source: gl::types::GLenum,
@@ -51,6 +47,7 @@ pub extern "system" fn debug_callback(source: gl::types::GLenum,
         println!("Type: {:#x} ID: {:#x} Severity: {:#x}:\n  {:#?}", err_type, id, severity, err_text.to_str().unwrap())
     }
 }
+
 
 fn main() {
     
@@ -105,7 +102,7 @@ fn main() {
         let dt_sec = (time_now - prev_time).as_secs_f64();
         prev_time = time_now;
         
-        update(dt_sec);
+        particle_system.update(dt_sec);
         
         render(&particle_system);
         window.gl_swap_window();

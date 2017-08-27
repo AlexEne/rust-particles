@@ -39,19 +39,24 @@ impl VAO {
         }
     }
 
-    pub fn set_buffer(&self, data : &Vec<f32>, location: u32, stride: u32) {
-        self.bind();
+    pub fn create_buffer() -> u32 {
         let mut gl_handle = 0u32;
+        unsafe { gl::GenBuffers(1, &mut gl_handle); }
+        gl_handle
+    }
+
+    pub fn set_buffer(&self, buffer_handle: u32, data : &[f32], location: u32, stride: u32) {
+        self.bind();
         unsafe {
-            gl::GenBuffers(1, &mut gl_handle);
-            gl::BindBuffer(gl::ARRAY_BUFFER, gl_handle);
+            gl::BindBuffer(gl::ARRAY_BUFFER, buffer_handle);
 
             gl::BufferData(gl::ARRAY_BUFFER, 
                 (data.len() * 4) as isize, 
-                data.as_ptr() as *const _, gl::STATIC_DRAW);
+                data.as_ptr() as *const _, gl::STREAM_DRAW);
 
             //Describe data at that location
-            gl::VertexAttribPointer(location, 3, gl::FLOAT, gl::FALSE, stride as i32, std::ptr::null());
+            gl::VertexAttribPointer(location, 3, 
+                gl::FLOAT, gl::FALSE, stride as i32, std::ptr::null());
             
             //Enable vertex attrib at location
             //This is the same as "location = bla", in the vertex shader code.

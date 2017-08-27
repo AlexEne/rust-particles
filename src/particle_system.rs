@@ -11,6 +11,7 @@ use cgmath;
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
 
+#[repr(C)]
 #[derive(Debug)]
 struct Particle {
     x: f32,
@@ -23,7 +24,8 @@ pub struct ParticleSystem {
     particles: Vec<Particle>,
     draw_shader_program: ShaderProgram,
     vao: VAO,
-    now: std::time::Instant
+    now: std::time::Instant,
+    gl_handle_pos_buffer: u32
 }
 
 impl ParticleSystem {
@@ -32,17 +34,18 @@ impl ParticleSystem {
             particles: Vec::with_capacity(particle_count),
             draw_shader_program: ShaderProgram::new(),
             vao: VAO::new(),
-            now: std::time::Instant::now()
+            now: std::time::Instant::now(),
+            gl_handle_pos_buffer: 0
         };
 
         let mut rng = rand::thread_rng();
-        let range = Range::new(-1000.0, 1000.0);
+        let range = Range::new(-1.0, 1.0);
 
         for i in 0..particle_count {
             let particle = Particle {
                 x : range.ind_sample(&mut rng),
                 y : range.ind_sample(&mut rng),
-                z : range.ind_sample(&mut rng),
+                z : 0.0, //range.ind_sample(&mut rng),
                 w : 0.0
             };
 
@@ -54,7 +57,7 @@ impl ParticleSystem {
 
     pub fn update(&mut self, dt: f64) {
         for particle in &mut self.particles {
-            particle.z += (-100.0 * dt) as f32;
+            particle.y += (-0.100 * dt) as f32;
         }
     }
 
@@ -65,8 +68,14 @@ impl ParticleSystem {
              0.0,  0.5, 0.0, 0.0
         );
         
-        self.vao.set_buffer(&vertices, 0, 4*4);
-
+        unsafe {
+            //TODO is there another way to do this?
+            let memory = std::slice::from_raw_parts(self.particles.as_ptr() as *const f32, 
+                self.particles.len()*4);
+            self.gl_handle_pos_buffer = VAO::create_buffer();    
+            self.vao.set_buffer(self.gl_handle_pos_buffer, memory, 0, 4*4);
+        }
+        
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
         vertex_shader.compile();
 
@@ -95,13 +104,19 @@ impl ParticleSystem {
         self.draw_shader_program.set_uniform_matrix4("view_from_world", identity_mtx.as_ref());
         self.draw_shader_program.set_uniform_matrix4("proj_from_view", identity_mtx.as_ref());
 
+        unsafe {
+            //TODO is there another way to do this?
+            let memory = std::slice::from_raw_parts(self.particles.as_ptr() as *const f32, 
+                self.particles.len()*4);
+            self.vao.set_buffer(self.gl_handle_pos_buffer, memory, 0, 4*4);
+        }
         self.vao.bind();
 
+
         unsafe {
-            gl::DrawArrays(gl::POINTS, 0, 3);
+            gl::DrawArrays(gl::POINTS, 0, self.particles.len() as i32);
         }    
 
         self.draw_shader_program.stop_use();
     }
 }
-
