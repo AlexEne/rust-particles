@@ -12,7 +12,7 @@ use cgmath::SquareMatrix;
 use cgmath::Matrix4;
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Position {
     x: f32,
     y: f32,
@@ -21,7 +21,7 @@ struct Position {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Velocity {
     x: f32,
     y: f32,
@@ -31,23 +31,25 @@ struct Velocity {
 
 
 pub struct ParticleSystem {
-    particle_pos: Vec<Position>,
-    particle_vel: Vec<Velocity>,
+    particle_pos: [Vec<Position>; 2],
+    particle_vel: [Vec<Velocity>; 2],
     draw_shader_program: ShaderProgram,
     vao: VAO,
     now: std::time::Instant,
     gl_handle_pos_buffer: u32,
+    active_buffer: usize
 }
 
 impl ParticleSystem {
     pub fn new(particle_count: usize) -> ParticleSystem {
         let mut system = ParticleSystem {
-            particle_pos: Vec::with_capacity(particle_count),
-            particle_vel: Vec::with_capacity(particle_count),
+            particle_pos: [Vec::with_capacity(particle_count), Vec::with_capacity(particle_count)],
+            particle_vel: [Vec::with_capacity(particle_count), Vec::with_capacity(particle_count)],
             draw_shader_program: ShaderProgram::new(),
             vao: VAO::new(),
             now: std::time::Instant::now(),
             gl_handle_pos_buffer: 0,
+            active_buffer: 0
         };
 
         let mut rng = rand::thread_rng();
@@ -61,18 +63,39 @@ impl ParticleSystem {
                 w : 0.0
             };
 
-            system.particle_pos.push(particle);
+            for i in 0..2 {
+                system.particle_pos[i].push(particle);
+            }
         }
         
         system
     }
 
     pub fn update(&mut self, dt: f64) {
-        let ref mut buffer_to_update = &mut self.particle_pos;
         
-        for mut pos in buffer_to_update.iter_mut() {
-            pos.y += (-0.100 * dt) as f32;
+        let active_buffer = self.active_buffer;
+        let output_buffer = self.get_output_buffer_index();
+        
+        for i in 0..self.particle_pos[0].len() {
+            let mut input_y = 0.0;
+            {
+                let ref input_buffer = &(self.particle_pos[active_buffer]);
+                input_y = input_buffer[i].y;
+            }
+            
+            let ref mut output_buffer = &mut (self.particle_pos[output_buffer]);
+        
+            output_buffer[i].y = input_y + (-0.100 * dt) as f32;
         }
+        
+    }
+
+    fn get_output_buffer_index(&self) -> usize {
+        ((self.active_buffer + 1) % 2) as usize
+    }
+
+    fn get_input_buffer_index(&self) -> usize {
+        self.active_buffer
     }
 
     pub fn init_graphics_resources(&mut self) {
@@ -106,7 +129,7 @@ impl ParticleSystem {
 
     }
   
-    pub fn render(&self) {
+    pub fn render(&mut self) {
 
         self.draw_shader_program.start_use();
 
@@ -118,7 +141,8 @@ impl ParticleSystem {
         self.draw_shader_program.set_uniform_matrix4("view_from_world", identity_mtx.as_ref());
         self.draw_shader_program.set_uniform_matrix4("proj_from_view", identity_mtx.as_ref());
 
-        let pos_buffer_to_draw = &self.particle_pos;        
+        let buffer_to_draw_index = self.get_output_buffer_index();
+        let ref pos_buffer_to_draw = &self.particle_pos[buffer_to_draw_index];
         unsafe {
             //TODO is there another way to do this?
             let memory = std::slice::from_raw_parts(pos_buffer_to_draw.as_ptr() as *const f32, 
@@ -133,5 +157,7 @@ impl ParticleSystem {
         }    
 
         self.draw_shader_program.stop_use();
+        
+        self.active_buffer = (self.active_buffer + 1) % 2;
     }
 }

@@ -18,7 +18,7 @@ use std::os::raw::c_void;
 use std::os::raw::c_char;
 
 
-fn render(particle_system: &ParticleSystem) {
+fn render(particle_system: &mut ParticleSystem) {
     unsafe { 
         gl::Viewport(0, 0, 1600, 900);
         gl::ClearColor(0.2, 0.2, 0.2, 1.0);
@@ -104,7 +104,7 @@ fn main() {
         
         particle_system.update(dt_sec);
         
-        render(&particle_system);
+        render(&mut particle_system);
         window.gl_swap_window();
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32/60));
