@@ -38,7 +38,7 @@ pub struct ParticleSystem {
     vao: VAO,
     now: std::time::Instant,
     gl_handle_pos_buffer: u32,
-    active_buffer: usize
+    should_swap_buffers: bool
 }
 
 impl ParticleSystem {
@@ -51,7 +51,7 @@ impl ParticleSystem {
             vao: VAO::new(),
             now: std::time::Instant::now(),
             gl_handle_pos_buffer: 0,
-            active_buffer: 0
+            should_swap_buffers: false
         };
 
         let mut rng = rand::thread_rng();
@@ -75,29 +75,37 @@ impl ParticleSystem {
 
     pub fn update(&mut self, dt: f64) {
         
-        let active_buffer = self.active_buffer;
         let output_buffer = self.get_output_buffer_index();
         
-        for i in 0..self.particle_pos[0].len() {
-            let mut input_y = 0.0;
-            {
-                let ref input_buffer = &(self.particle_pos[active_buffer]);
-                input_y = input_buffer[i].y;
-            }
-            
-            let ref mut output_buffer = &mut (self.particle_pos[output_buffer]);
-        
+        let count = self.particle_pos[0].len();
+        let (input_buffer, output_buffer) = self.get_input_and_output_buffer();
+
+        for i in 0..count {
+            let mut input_y = input_buffer[i].y;
             output_buffer[i].y = input_y + (-0.100 * dt) as f32;
         }
-        
+    }
+
+    fn get_input_and_output_buffer(&mut self) -> (&mut [Position], &mut [Position]) {
+        let (in_buff, out_buff) = self.particle_pos.split_at_mut(1);
+
+        match self.should_swap_buffers {
+            false => {
+                (&mut in_buff[0], &mut out_buff[0])
+            } 
+            true => {
+                (&mut out_buff[0], &mut in_buff[0])
+            } 
+        }
     }
 
     fn get_output_buffer_index(&self) -> usize {
-        ((self.active_buffer + 1) % 2) as usize
-    }
-
-    fn get_input_buffer_index(&self) -> usize {
-        self.active_buffer
+        if self.should_swap_buffers {
+            1 as usize
+        }
+        else {
+            0 as usize
+        }
     }
 
     pub fn init_graphics_resources(&mut self) {      
@@ -159,6 +167,6 @@ impl ParticleSystem {
 
         self.draw_shader_program.stop_use();
         
-        self.active_buffer = (self.active_buffer + 1) % 2;
+        self.should_swap_buffers = !self.should_swap_buffers;
     }
 }
