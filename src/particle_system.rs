@@ -13,51 +13,65 @@ use cgmath::Matrix4;
 
 #[repr(C)]
 #[derive(Debug)]
-struct Particle {
+struct Position {
     x: f32,
     y: f32,
     z: f32,
     w: f32
 }
 
+#[repr(C)]
+#[derive(Debug)]
+struct Velocity {
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32
+}
+
+
 pub struct ParticleSystem {
-    particles: Vec<Particle>,
+    particle_pos: Vec<Position>,
+    particle_vel: Vec<Velocity>,
     draw_shader_program: ShaderProgram,
     vao: VAO,
     now: std::time::Instant,
-    gl_handle_pos_buffer: u32
+    gl_handle_pos_buffer: u32,
 }
 
 impl ParticleSystem {
     pub fn new(particle_count: usize) -> ParticleSystem {
         let mut system = ParticleSystem {
-            particles: Vec::with_capacity(particle_count),
+            particle_pos: Vec::with_capacity(particle_count),
+            particle_vel: Vec::with_capacity(particle_count),
             draw_shader_program: ShaderProgram::new(),
             vao: VAO::new(),
             now: std::time::Instant::now(),
-            gl_handle_pos_buffer: 0
+            gl_handle_pos_buffer: 0,
         };
 
         let mut rng = rand::thread_rng();
         let range = Range::new(-1.0, 1.0);
 
         for i in 0..particle_count {
-            let particle = Particle {
+            let particle = Position {
                 x : range.ind_sample(&mut rng),
                 y : range.ind_sample(&mut rng),
                 z : 0.0, //range.ind_sample(&mut rng),
                 w : 0.0
             };
 
-            system.particles.push(particle);
+            system.particle_pos.push(particle);
         }
         
         system
     }
 
     pub fn update(&mut self, dt: f64) {
-        for particle in &mut self.particles {
-            particle.y += (-0.100 * dt) as f32;
+        let ref mut buffer_to_update = &mut self.particle_pos;
+        
+        for mut pos in buffer_to_update.iter_mut() {
+            pos.y += (-0.100 * dt) as f32;
         }
     }
 
@@ -70,8 +84,8 @@ impl ParticleSystem {
         
         unsafe {
             //TODO is there another way to do this?
-            let memory = std::slice::from_raw_parts(self.particles.as_ptr() as *const f32, 
-                self.particles.len()*4);
+            let memory = std::slice::from_raw_parts(self.particle_pos.as_ptr() as *const f32, 
+                self.particle_pos.len()*4);
             self.gl_handle_pos_buffer = VAO::create_buffer();    
             self.vao.set_buffer(self.gl_handle_pos_buffer, memory, 0, 4*4);
         }
@@ -104,17 +118,18 @@ impl ParticleSystem {
         self.draw_shader_program.set_uniform_matrix4("view_from_world", identity_mtx.as_ref());
         self.draw_shader_program.set_uniform_matrix4("proj_from_view", identity_mtx.as_ref());
 
+        let pos_buffer_to_draw = &self.particle_pos;        
         unsafe {
             //TODO is there another way to do this?
-            let memory = std::slice::from_raw_parts(self.particles.as_ptr() as *const f32, 
-                self.particles.len()*4);
+            let memory = std::slice::from_raw_parts(pos_buffer_to_draw.as_ptr() as *const f32, 
+                pos_buffer_to_draw.len()*4);
             self.vao.set_buffer(self.gl_handle_pos_buffer, memory, 0, 4*4);
         }
         self.vao.bind();
 
 
         unsafe {
-            gl::DrawArrays(gl::POINTS, 0, self.particles.len() as i32);
+            gl::DrawArrays(gl::POINTS, 0, pos_buffer_to_draw.len() as i32);
         }    
 
         self.draw_shader_program.stop_use();
