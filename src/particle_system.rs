@@ -34,6 +34,7 @@ pub struct ParticleSystem {
     particle_pos: [Vec<Position>; 2],
     particle_vel: [Vec<Velocity>; 2],
     draw_shader_program: ShaderProgram,
+    compute_shader_program: ShaderProgram,
     vao: VAO,
     now: std::time::Instant,
     gl_handle_pos_buffer: u32,
@@ -46,6 +47,7 @@ impl ParticleSystem {
             particle_pos: [Vec::with_capacity(particle_count), Vec::with_capacity(particle_count)],
             particle_vel: [Vec::with_capacity(particle_count), Vec::with_capacity(particle_count)],
             draw_shader_program: ShaderProgram::new(),
+            compute_shader_program: ShaderProgram::new(),
             vao: VAO::new(),
             now: std::time::Instant::now(),
             gl_handle_pos_buffer: 0,
@@ -98,13 +100,7 @@ impl ParticleSystem {
         self.active_buffer
     }
 
-    pub fn init_graphics_resources(&mut self) {
-        let vertices: Vec<f32> = vec!(
-            -0.5, -0.5, 0.0, 0.0,
-             0.5, -0.5, 0.0, 0.0,
-             0.0,  0.5, 0.0, 0.0
-        );
-        
+    pub fn init_graphics_resources(&mut self) {      
         unsafe {
             //TODO is there another way to do this?
             let memory = std::slice::from_raw_parts(self.particle_pos.as_ptr() as *const f32, 
@@ -127,6 +123,11 @@ impl ParticleSystem {
         self.draw_shader_program.attach_shader(&geometry_shader);
         self.draw_shader_program.link();
 
+        let mut compute_shader = Shader::new(ShaderType::Compute, "shaders/compute_shader.c.glsl");
+        compute_shader.compile();
+
+        self.compute_shader_program.attach_shader(&compute_shader);
+        self.compute_shader_program.link();
     }
   
     pub fn render(&mut self) {
