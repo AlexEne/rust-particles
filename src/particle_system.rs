@@ -10,6 +10,7 @@ use super::Miliseconds;
 use cgmath;
 use cgmath::SquareMatrix;
 use cgmath::Matrix4;
+use camera::Camera;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -55,7 +56,7 @@ impl ParticleSystem {
         };
 
         let mut rng = rand::thread_rng();
-        let range = Range::new(-1.0, 1.0);
+        let range = Range::new(-1000.0, 1000.0);
 
         for i in 0..particle_count {
             let particle = Position {
@@ -81,8 +82,8 @@ impl ParticleSystem {
         let (input_buffer, output_buffer) = self.get_input_and_output_buffer();
 
         for i in 0..count {
-            let mut input_y = input_buffer[i].y;
-            output_buffer[i].y = input_y + (-0.100 * dt) as f32;
+            let input_y = input_buffer[i].y;
+            output_buffer[i].y = input_y + (-30.0 * dt) as f32;
         }
     }
 
@@ -147,8 +148,9 @@ impl ParticleSystem {
         self.draw_shader_program.set_uniform4f("vtx_color", &[0.3, colorg, 0.3, 1.0]);
         
         let identity_mtx = cgmath::Matrix4::<f32>::identity();
-        self.draw_shader_program.set_uniform_matrix4("view_from_world", identity_mtx.as_ref());
-        self.draw_shader_program.set_uniform_matrix4("proj_from_view", identity_mtx.as_ref());
+        let cam = Camera::new();
+        self.draw_shader_program.set_uniform_matrix4("view_from_world", cam.view_from_world.as_ref());
+        self.draw_shader_program.set_uniform_matrix4("proj_from_view", cam.proj_from_view.as_ref());
 
         let buffer_to_draw_index = self.get_output_buffer_index();
         let ref pos_buffer_to_draw = &self.particle_pos[buffer_to_draw_index];

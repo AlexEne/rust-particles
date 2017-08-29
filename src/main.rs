@@ -5,6 +5,7 @@ extern crate cgmath;
 
 mod particle_system;
 mod graphics;
+mod camera;
 
 use graphics::shader;
 use particle_system::ParticleSystem;
