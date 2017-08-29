@@ -43,6 +43,5 @@ void main()
 {
     vec4 viewPos = view_from_world * vec4(position.xyz, 1.0);
     gl_Position = proj_from_view * viewPos;
-    gl_Position = vec4(position.x, position.y, position.z, 1.0);
     v_color.transformedColor = vec4(0.0, 1.0, 1.0, 1.0);
 }
