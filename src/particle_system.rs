@@ -5,11 +5,7 @@ use std;
 use shader::Shader;
 use shader::ShaderProgram;
 use shader::ShaderType;
-use super::graphics::vao::VAO;
 use super::Miliseconds;
-use cgmath;
-use cgmath::SquareMatrix;
-use cgmath::Matrix4;
 use camera::Camera;
 
 #[repr(C)]
@@ -67,7 +63,7 @@ impl ParticleSystem {
             let particle = Position {
                 x : range.ind_sample(&mut rng),
                 y : range.ind_sample(&mut rng),
-                z : 0.0, //range.ind_sample(&mut rng),
+                z : range.ind_sample(&mut rng),
                 w : 0.0
             };
 

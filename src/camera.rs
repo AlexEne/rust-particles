@@ -31,10 +31,10 @@ impl Camera {
         self.view_from_world = super::cgmath::Matrix4::look_at(self.position, 
         cgmath::Point3::<f32>::new(0.0, 0.0, 0.0), 
         cgmath::Vector3::<f32>::new(0.0, 1.0, 0.0));
-        let rot = super::cgmath::Matrix4::from_angle_x(super::cgmath::Deg::<f32>(-self.angle_pitch));
+        let rot = super::cgmath::Matrix4::from_angle_x(super::cgmath::Deg::<f32>(self.angle_pitch));
         self.view_from_world = self.view_from_world * rot;
         
-        let rot = super::cgmath::Matrix4::from_angle_y(super::cgmath::Deg::<f32>(-self.angle_yaw));
+        let rot = super::cgmath::Matrix4::from_angle_y(super::cgmath::Deg::<f32>(self.angle_yaw));
         self.view_from_world = self.view_from_world * rot;
         self.proj_from_view = perspective(cgmath::Rad(0.785398), 4.0 / 3.0, 0.5, 10000.0);
     }
