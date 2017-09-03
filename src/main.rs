@@ -14,7 +14,6 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
 use std::time::Instant;
-use std::time::Duration;
 use std::os::raw::c_void;
 use std::os::raw::c_char;
 
@@ -39,9 +38,9 @@ pub extern "system" fn debug_callback(source: gl::types::GLenum,
         err_type: gl::types::GLenum,
         id: gl::types::GLuint,
         severity: gl::types::GLenum,
-        length: gl::types::GLsizei,
+        _: gl::types::GLsizei,
         message: *const c_char,
-        userParam: *mut c_void) {
+        _: *mut c_void) {
 
     unsafe{
         let err_text = std::ffi::CStr::from_ptr(message);
@@ -85,7 +84,7 @@ fn main() {
 
     unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
     let mut particle_system = ParticleSystem::new(1024*1024*16);
-    particle_system.init_graphics_resources([512, 512, 1]);
+    particle_system.init_graphics_resources([128, 128, 1]);
     
     let mut prev_time = Instant::now();
 

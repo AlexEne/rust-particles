@@ -89,13 +89,6 @@ impl ShaderProgram {
         }
     }
 
-    pub fn set_uniform_float(&self, name: &str, value: f32) {
-        let location = self.get_uniform_location(name);
-        unsafe {
-            gl::Uniform1f(location, value);
-        }
-    }
-
     pub fn set_uniform_3fv(&self, name: &str, count: i32, values: &[f32]) {
         let location = self.get_uniform_location(name);
         unsafe {
@@ -158,7 +151,7 @@ impl Shader {
             let mut success = gl::FALSE as gl::types::GLint;
             gl::GetShaderiv(self.gl_handle, gl::COMPILE_STATUS, &mut success);
             if success != gl::TRUE as gl::types::GLint {
-                let mut info_log = String::with_capacity(256); 
+                let info_log = String::with_capacity(256); 
                 let mut error_size = 0i32; 
                 gl::GetShaderInfoLog(self.gl_handle, 512, &mut error_size, info_log.as_ptr() as _); 
                 println!("Error compile failed with error: {:?} for: {:?}",  
