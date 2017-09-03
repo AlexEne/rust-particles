@@ -160,7 +160,7 @@ impl ParticleSystem {
     }
 
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, cam: &Camera) {
 
         self.draw_shader_program.start_use();
 
@@ -168,8 +168,6 @@ impl ParticleSystem {
         let colorg = (elapsed % 1000) as f32 / 1000.0f32;
         self.draw_shader_program.set_uniform4f("vtx_color", &[0.3, colorg, 0.3, 1.0]);
         
-        let identity_mtx = cgmath::Matrix4::<f32>::identity();
-        let cam = Camera::new();
         self.draw_shader_program.set_uniform_matrix4("view_from_world", cam.view_from_world.as_ref());
         self.draw_shader_program.set_uniform_matrix4("proj_from_view", cam.proj_from_view.as_ref());
 

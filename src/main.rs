@@ -16,16 +16,17 @@ use sdl2::keyboard::Keycode;
 use std::time::Instant;
 use std::os::raw::c_void;
 use std::os::raw::c_char;
+use camera::Camera;
+use sdl2::keyboard::Scancode;
 
-
-fn render(particle_system: &mut ParticleSystem) {
+fn render(particle_system: &mut ParticleSystem, cam: &Camera) {
     unsafe { 
         gl::Viewport(0, 0, 1600, 900);
         gl::ClearColor(0.2, 0.2, 0.2, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); 
     }
 
-    particle_system.render();
+    particle_system.render(cam);
 
     unsafe {
         gl::Flush();
@@ -49,11 +50,35 @@ pub extern "system" fn debug_callback(source: gl::types::GLenum,
 }
 
 
+fn handle_input(cam: &mut Camera, keyboard_state: sdl2::keyboard::KeyboardState, 
+    dx: i32, dy: i32, dt: f64) {
+    
+    let mut dist = 0.0f32;
+
+    if keyboard_state.is_scancode_pressed(Scancode::S) || 
+        keyboard_state.is_scancode_pressed(Scancode::W) {
+        dist = 50.0f32 * dt as f32;
+    }
+
+    cam.angle_pitch -= dy as f32 / 25.0f32;
+    cam.angle_yaw -= dx as f32 / 25.0f32;
+
+    if keyboard_state.is_scancode_pressed(Scancode::S) {
+        cam.position.z -= dist;
+    }
+    else if keyboard_state.is_scancode_pressed(Scancode::W) {
+        cam.position.z += dist;
+    }
+
+    cam.update_matrices();
+}
+
 fn main() {
     
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let gl_attr = video_subsystem.gl_attr();
+    let mut cam = Camera::new();
 
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
     // Set the context into debug mode
@@ -83,16 +108,28 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
-    let mut particle_system = ParticleSystem::new(1024*1024*16);
+    let mut particle_system = ParticleSystem::new(1024*1024*1);
     particle_system.init_graphics_resources([128, 128, 1]);
     
     let mut prev_time = Instant::now();
+            
+
 
     'running: loop {
+        let mouse_state = event_pump.mouse_state();
+        let mut dx = 0;
+        let mut dy = 0;
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} | Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
                     break 'running
+                }
+                Event::MouseMotion { xrel, yrel, ..} => {
+                    
+                    if mouse_state.left() {
+                        dx = xrel;
+                        dy = yrel;
+                    }
                 }
                 _ => {}
             }
@@ -102,9 +139,13 @@ fn main() {
         let dt_sec = (time_now - prev_time).as_secs_f64();
         prev_time = time_now;
         
+        let keyboard_state = event_pump.keyboard_state();
+
+        handle_input(&mut cam, keyboard_state, dx, dy, dt_sec);
+
         particle_system.update(dt_sec);
         
-        render(&mut particle_system);
+        render(&mut particle_system, &cam);
         window.gl_swap_window();
 
         //std::thread::sleep(Duration::new(0, 1_000_000_000u32/60));
