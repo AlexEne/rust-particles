@@ -52,7 +52,7 @@ impl ShaderProgram {
             let mut success = gl::FALSE as gl::types::GLint;
             gl::GetProgramiv(self.gl_handle, gl::LINK_STATUS, &mut success);
             if success != gl::TRUE as gl::types::GLint {
-                let mut info_log = String::with_capacity(256); 
+                let info_log = String::with_capacity(256); 
                 let mut error_size = 0i32; 
                 gl::GetShaderInfoLog(self.gl_handle, 512, &mut error_size, info_log.as_ptr() as _); 
                 println!("Error link failed with error: {:?} for: {:?}",  
