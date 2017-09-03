@@ -84,8 +84,8 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
-    let mut particle_system = ParticleSystem::new(10);
-    particle_system.init_graphics_resources();
+    let mut particle_system = ParticleSystem::new(1024*1024*16);
+    particle_system.init_graphics_resources([512, 512, 1]);
     
     let mut prev_time = Instant::now();
 
@@ -108,7 +108,7 @@ fn main() {
         render(&mut particle_system);
         window.gl_swap_window();
 
-        std::thread::sleep(Duration::new(0, 1_000_000_000u32/60));
+        //std::thread::sleep(Duration::new(0, 1_000_000_000u32/60));
     }
 
 }

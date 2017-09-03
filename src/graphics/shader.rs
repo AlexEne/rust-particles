@@ -52,7 +52,12 @@ impl ShaderProgram {
             let mut success = gl::FALSE as gl::types::GLint;
             gl::GetProgramiv(self.gl_handle, gl::LINK_STATUS, &mut success);
             if success != gl::TRUE as gl::types::GLint {
-                println!("Failed to link: {} ", self.gl_handle);
+                let mut info_log = String::with_capacity(256); 
+                let mut error_size = 0i32; 
+                gl::GetShaderInfoLog(self.gl_handle, 512, &mut error_size, info_log.as_ptr() as _); 
+                println!("Error link failed with error: {:?} for: {:?}",  
+                    info_log, self.gl_handle);
+                panic!();               
             }
             else {
                 println!("Linked successfully {}", self.gl_handle);
@@ -84,6 +89,41 @@ impl ShaderProgram {
         }
     }
 
+    pub fn set_uniform_float(&self, name: &str, value: f32) {
+        let location = self.get_uniform_location(name);
+        unsafe {
+            gl::Uniform1f(location, value);
+        }
+    }
+
+    pub fn set_uniform_3fv(&self, name: &str, count: i32, values: &[f32]) {
+        let location = self.get_uniform_location(name);
+        unsafe {
+            gl::Uniform3fv(location, count, values.as_ptr() as *const _);
+        }
+    }
+
+    pub fn set_uniform_1fv(&self, name: &str, count: i32, values: &[f32]) {
+        let location = self.get_uniform_location(name);
+        unsafe {
+            gl::Uniform1fv(location, count, values.as_ptr() as *const _);
+        }
+    }
+
+    pub fn set_uniform_1i(&self, name: &str, value: i32) {
+        let location = self.get_uniform_location(name);
+        unsafe {
+            gl::Uniform1i(location, value);
+        }
+    }
+
+    pub fn set_uniform_1f(&self, name: &str, value: f32) {
+        let location = self.get_uniform_location(name);
+        unsafe {
+            gl::Uniform1f(location, value);
+        }
+    }
+
     fn get_uniform_location(&self, name: &str) -> i32 {
         unsafe {
             let c_name = std::ffi::CString::new(name).unwrap();
@@ -111,10 +151,20 @@ impl Shader {
             let file_buf = self.read_shader_file();
 
             let shader_str = CString::new(file_buf).unwrap();
-
             gl::ShaderSource(self.gl_handle, 1, &shader_str.as_ptr(), std::ptr::null());
             
             gl::CompileShader(self.gl_handle);
+
+            let mut success = gl::FALSE as gl::types::GLint;
+            gl::GetShaderiv(self.gl_handle, gl::COMPILE_STATUS, &mut success);
+            if success != gl::TRUE as gl::types::GLint {
+                let mut info_log = String::with_capacity(256); 
+                let mut error_size = 0i32; 
+                gl::GetShaderInfoLog(self.gl_handle, 512, &mut error_size, info_log.as_ptr() as _); 
+                println!("Error compile failed with error: {:?} for: {:?}",  
+                    info_log, self.gl_handle);
+                panic!();               
+            }            
         }
     }
 

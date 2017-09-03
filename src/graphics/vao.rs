@@ -55,7 +55,7 @@ impl VAO {
                 data.as_ptr() as *const _, gl::STREAM_DRAW);
 
             //Describe data at that location
-            gl::VertexAttribPointer(location, 3, 
+            gl::VertexAttribPointer(location, 4, 
                 gl::FLOAT, gl::FALSE, stride as i32, std::ptr::null());
             
             //Enable vertex attrib at location

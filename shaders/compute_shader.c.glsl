@@ -64,8 +64,8 @@ void main(void)
 	//Update Velocity
 	vec4 newParticleVelocity = particleVelocity;
 	
-	//We could recycle this particle since it's life is over. ( not used now )
-	// Recycle the particle if we touched the ground of if our speed is too small.
+	// We could recycle this particle since it's life is over. ( not used now )
+	// For now, recycle the particle if we touched the ground of if our speed is too small.
 	if ( particlePos.y <= 0.001 )
 	{
 		float rand1 = rand(particlePos.xz);
@@ -89,7 +89,7 @@ void main(void)
 	}
 
 	//Collisions
-	{
+	if (false){
 		//Ground Bounce
 		if(particlePos.y <= 0.01)
 		{
@@ -140,7 +140,7 @@ void main(void)
 			}
 		}
 
-		if( closestSphereIdx != -1)
+		if (closestSphereIdx != -1)
 		{
 			//We we collided with a sphere.
 
@@ -167,9 +167,9 @@ void main(void)
 	particlePos.w = length(newParticleVelocity);
 
 	//Update our remaining life
-	newParticleVelocity.w -= dt;
+	//newParticleVelocity.w -= dt;
 
 	//Save the new possitions and velocities
-	OutPos[index] = particlePos;
-    OutVelocity[index] = newParticleVelocity;
+	InPos[index] = particlePos;
+    InVelocity[index] = newParticleVelocity;
 }

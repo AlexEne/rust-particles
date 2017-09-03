@@ -32,33 +32,38 @@ struct Velocity {
 
 
 pub struct ParticleSystem {
-    particle_pos: [Vec<Position>; 2],
-    particle_vel: [Vec<Velocity>; 2],
+    particle_pos: Vec<Position>,
+    particle_vel: Vec<Velocity>,
     draw_shader_program: ShaderProgram,
     compute_shader_program: ShaderProgram,
-    vao: VAO,
     now: std::time::Instant,
-    gl_handle_pos_buffer: u32,
-    should_swap_buffers: bool
+    position_buffer_compute_handle: u32,
+    velocity_buffer_compute_handle: u32,
+    draw_vao_handle: u32,
+    compute_shader_work_groups: [u32; 3]
 }
 
 impl ParticleSystem {
     pub fn new(particle_count: usize) -> ParticleSystem {
         let mut system = ParticleSystem {
-            particle_pos: [Vec::with_capacity(particle_count), Vec::with_capacity(particle_count)],
-            particle_vel: [Vec::with_capacity(particle_count), Vec::with_capacity(particle_count)],
+            particle_pos: Vec::with_capacity(particle_count),
+            particle_vel: Vec::with_capacity(particle_count),
             draw_shader_program: ShaderProgram::new(),
             compute_shader_program: ShaderProgram::new(),
-            vao: VAO::new(),
             now: std::time::Instant::now(),
-            gl_handle_pos_buffer: 0,
-            should_swap_buffers: false
+            position_buffer_compute_handle: 0,
+            velocity_buffer_compute_handle: 0,
+            draw_vao_handle: 0,
+            compute_shader_work_groups: [0, 0, 0]
         };
 
         let mut rng = rand::thread_rng();
         let range = Range::new(-1000.0, 1000.0);
+        
+        system.particle_pos.reserve(particle_count);
+        system.particle_vel.reserve(particle_count);
 
-        for i in 0..particle_count {
+        for _ in 0..particle_count {
             let particle = Position {
                 x : range.ind_sample(&mut rng),
                 y : range.ind_sample(&mut rng),
@@ -66,58 +71,32 @@ impl ParticleSystem {
                 w : 0.0
             };
 
-            for i in 0..2 {
-                system.particle_pos[i].push(particle);
-            }
+            system.particle_pos.push(particle);
+            system.particle_vel.push(Velocity{x: 0.0, y: 0.0, z: 0.0, w:0.0});
         }
-        
+
         system
     }
 
-    pub fn update(&mut self, dt: f64) {
+    pub fn init_graphics_resources(&mut self, work_groups: [u32; 3]) {     
+
+         self.position_buffer_compute_handle = ParticleSystem::allocate_buffer(gl::SHADER_STORAGE_BUFFER, 
+             self.particle_pos.as_ptr() as *const _, (self.particle_pos.len() * std::mem::size_of::<Position>()) as isize);
+        self.velocity_buffer_compute_handle = ParticleSystem::allocate_buffer(gl::SHADER_STORAGE_BUFFER, 
+             self.particle_vel.as_ptr() as *const _, (self.particle_vel.len() * std::mem::size_of::<Velocity>()) as isize);
         
-        let output_buffer = self.get_output_buffer_index();
+        self.compute_shader_work_groups = work_groups;
         
-        let count = self.particle_pos[0].len();
-        let (input_buffer, output_buffer) = self.get_input_and_output_buffer();
-
-        for i in 0..count {
-            let input_y = input_buffer[i].y;
-            output_buffer[i].y = input_y + (-30.0 * dt) as f32;
-        }
-    }
-
-    fn get_input_and_output_buffer(&mut self) -> (&mut [Position], &mut [Position]) {
-        let (in_buff, out_buff) = self.particle_pos.split_at_mut(1);
-
-        match self.should_swap_buffers {
-            false => {
-                (&mut in_buff[0], &mut out_buff[0])
-            } 
-            true => {
-                (&mut out_buff[0], &mut in_buff[0])
-            } 
-        }
-    }
-
-    fn get_output_buffer_index(&self) -> usize {
-        if self.should_swap_buffers {
-            1 as usize
-        }
-        else {
-            0 as usize
-        }
-    }
-
-    pub fn init_graphics_resources(&mut self) {      
         unsafe {
-            //TODO is there another way to do this?
-            let memory = std::slice::from_raw_parts(self.particle_pos.as_ptr() as *const f32, 
-                self.particle_pos.len()*4);
-            self.gl_handle_pos_buffer = VAO::create_buffer();    
-            self.vao.set_buffer(self.gl_handle_pos_buffer, memory, 0, 4*4);
+            gl::GenVertexArrays(1, &mut self.draw_vao_handle);
+            gl::BindVertexArray(self.draw_vao_handle);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.position_buffer_compute_handle);
+            gl::VertexAttribPointer(0, 4, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
+            gl::EnableVertexAttribArray(0);
         }
-        
+
+        println!("Position buffer handle: {}, Velocity buffer handle: {}", self.position_buffer_compute_handle, self.velocity_buffer_compute_handle);
+
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
         vertex_shader.compile();
 
@@ -139,6 +118,48 @@ impl ParticleSystem {
         self.compute_shader_program.link();
     }
   
+    pub fn update(&mut self, dt: f64) {
+
+        self.compute_shader_program.start_use();
+        {
+            self.compute_shader_program.set_uniform_1f("dt", dt as f32);
+            
+            let count = self.particle_pos.len();
+            self.compute_shader_program.set_uniform_1i("g_NumParticles", count as i32);
+
+            let size_in_bytes = count * std::mem::size_of::<Position>();
+            unsafe {
+                gl::BindBufferRange(gl::SHADER_STORAGE_BUFFER, 0, 
+                    self.position_buffer_compute_handle, 0, size_in_bytes as isize);
+                gl::BindBufferRange(gl::SHADER_STORAGE_BUFFER, 1, 
+                    self.velocity_buffer_compute_handle, 0, size_in_bytes as isize);
+
+                gl::DispatchCompute(self.compute_shader_work_groups[0], self.compute_shader_work_groups[1], self.compute_shader_work_groups[2]);
+                gl::MemoryBarrier(gl::VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+                gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, 0);
+            }
+
+        }
+        self.compute_shader_program.stop_use();
+    }
+
+    fn allocate_buffer(buffer_type: gl::types::GLenum, data: *const std::os::raw::c_void, size: isize) -> u32 {
+        let mut buffer_object = 0u32;
+        
+        unsafe {
+            gl::GenBuffers(1, &mut buffer_object);
+
+            gl::BindBuffer(buffer_type, buffer_object);
+
+            gl::BufferData(buffer_type, size, data, gl::STATIC_DRAW);
+
+            gl::BindBuffer(buffer_type, 0);
+        }
+
+        buffer_object
+    }
+
+
     pub fn render(&mut self) {
 
         self.draw_shader_program.start_use();
@@ -152,23 +173,12 @@ impl ParticleSystem {
         self.draw_shader_program.set_uniform_matrix4("view_from_world", cam.view_from_world.as_ref());
         self.draw_shader_program.set_uniform_matrix4("proj_from_view", cam.proj_from_view.as_ref());
 
-        let buffer_to_draw_index = self.get_output_buffer_index();
-        let ref pos_buffer_to_draw = &self.particle_pos[buffer_to_draw_index];
         unsafe {
-            //TODO is there another way to do this?
-            let memory = std::slice::from_raw_parts(pos_buffer_to_draw.as_ptr() as *const f32, 
-                pos_buffer_to_draw.len()*4);
-            self.vao.set_buffer(self.gl_handle_pos_buffer, memory, 0, 4*4);
-        }
-        self.vao.bind();
-
-
-        unsafe {
-            gl::DrawArrays(gl::POINTS, 0, pos_buffer_to_draw.len() as i32);
+            gl::BindVertexArray(self.draw_vao_handle);
+            gl::DrawArrays(gl::POINTS, 0, self.particle_pos.len() as i32);
+            gl::BindVertexArray(0);
         }    
 
         self.draw_shader_program.stop_use();
-        
-        self.should_swap_buffers = !self.should_swap_buffers;
     }
 }
