@@ -83,7 +83,7 @@ fn main() {
         .build()
         .unwrap();
 
-    let gl_context = window.gl_create_context();
+    let _gl_context = window.gl_create_context();
     println!("Started with GL version: {:?}", gl_attr.context_version());
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
@@ -99,7 +99,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
-    let mut particle_system = ParticleSystem::new(1024*1024*1);
+    let mut particle_system = ParticleSystem::new(1024*1024*6);
     particle_system.init_graphics_resources([128, 128, 1]);
     
     let mut prev_time = Instant::now();
