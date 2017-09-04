@@ -5,8 +5,11 @@ use std;
 use shader::Shader;
 use shader::ShaderProgram;
 use shader::ShaderType;
+use graphics::framebuffer::FrameBuffer;
 use super::Miliseconds;
 use camera::Camera;
+use graphics::vao::VertexBufferObj;
+use graphics::vao::VertexArrayObj;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -33,10 +36,14 @@ pub struct ParticleSystem {
     draw_shader_program: ShaderProgram,
     compute_shader_program: ShaderProgram,
     now: std::time::Instant,
-    position_buffer_compute_handle: u32,
-    velocity_buffer_compute_handle: u32,
-    draw_vao_handle: u32,
-    compute_shader_work_groups: [u32; 3]
+    possition_vbo: VertexBufferObj,
+    velocity_vbo: VertexBufferObj,
+    draw_vao: VertexArrayObj,
+    screen_vao: VertexArrayObj,
+    compute_shader_work_groups: [u32; 3],
+    frame_buffer: FrameBuffer,
+    screen_program: ShaderProgram,
+    fullscreen_quad_vbo: VertexBufferObj
 }
 
 impl ParticleSystem {
@@ -47,10 +54,14 @@ impl ParticleSystem {
             draw_shader_program: ShaderProgram::new(),
             compute_shader_program: ShaderProgram::new(),
             now: std::time::Instant::now(),
-            position_buffer_compute_handle: 0,
-            velocity_buffer_compute_handle: 0,
-            draw_vao_handle: 0,
-            compute_shader_work_groups: [0, 0, 0]
+            possition_vbo: VertexBufferObj::new(),
+            velocity_vbo: VertexBufferObj::new(),
+            draw_vao: VertexArrayObj::new(),
+            screen_vao: VertexArrayObj::new(),
+            compute_shader_work_groups: [0, 0, 0],
+            frame_buffer: FrameBuffer::new(1600, 900),
+            screen_program: ShaderProgram::new(),
+            fullscreen_quad_vbo: VertexBufferObj::new()
         };
 
         let mut rng = rand::thread_rng();
@@ -75,23 +86,33 @@ impl ParticleSystem {
     }
 
     pub fn init_graphics_resources(&mut self, work_groups: [u32; 3]) {     
-
-         self.position_buffer_compute_handle = ParticleSystem::allocate_buffer(gl::SHADER_STORAGE_BUFFER, 
-             self.particle_pos.as_ptr() as *const _, (self.particle_pos.len() * std::mem::size_of::<Position>()) as isize);
-        self.velocity_buffer_compute_handle = ParticleSystem::allocate_buffer(gl::SHADER_STORAGE_BUFFER, 
-             self.particle_vel.as_ptr() as *const _, (self.particle_vel.len() * std::mem::size_of::<Velocity>()) as isize);
-        
         self.compute_shader_work_groups = work_groups;
         
-        unsafe {
-            gl::GenVertexArrays(1, &mut self.draw_vao_handle);
-            gl::BindVertexArray(self.draw_vao_handle);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.position_buffer_compute_handle);
-            gl::VertexAttribPointer(0, 4, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
-            gl::EnableVertexAttribArray(0);
-        }
+        self.draw_vao.bind();
+        let count = self.particle_pos.len();
+        let size = count * std::mem::size_of::<f32>();
+        self.possition_vbo.set_buffer_data_from_raw_ptr(self.particle_pos.as_ptr() as *const _, size as isize);
+        self.possition_vbo.describe_data(0, 4, 4*std::mem::size_of::<f32>(), 0);
+        self.draw_vao.unbind();
 
-        println!("Position buffer handle: {}, Velocity buffer handle: {}", self.position_buffer_compute_handle, self.velocity_buffer_compute_handle);
+
+        let quad_vertices: [f32; 24] = [ // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+            // positions   // texCoords
+            -1.0,  1.0,  0.0, 1.0,
+            -1.0, -1.0,  0.0, 0.0,
+             1.0, -1.0,  1.0, 0.0,
+
+            -1.0,  1.0,  0.0, 1.0,
+             1.0, -1.0,  1.0, 0.0,
+             1.0,  1.0,  1.0, 1.0
+        ];
+        self.screen_vao.bind();
+        self.fullscreen_quad_vbo.set_buffer_data(&quad_vertices);
+        self.fullscreen_quad_vbo.describe_data(0, 2, 4 * std::mem::size_of::<f32>(), 0);
+        self.fullscreen_quad_vbo.describe_data(1, 2, 4 * std::mem::size_of::<f32>(), 2 * std::mem::size_of::<f32>());
+        self.screen_vao.unbind();
+
+        self.velocity_vbo.set_buffer_data_from_raw_ptr(self.particle_vel.as_ptr() as *const _, size as isize);
 
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
         vertex_shader.compile();
@@ -112,6 +133,16 @@ impl ParticleSystem {
 
         self.compute_shader_program.attach_shader(&compute_shader);
         self.compute_shader_program.link();
+
+        let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/fullscreen_quad.v.glsl");
+        vertex_shader.compile();
+
+        let mut fragment_shader = Shader::new(ShaderType::Fragment, "shaders/copy_texture_to_quad.p.glsl");
+        fragment_shader.compile();
+
+        self.screen_program.attach_shader(&vertex_shader);
+        self.screen_program.attach_shader(&fragment_shader);
+        self.screen_program.link();
     }
   
     pub fn update(&mut self, dt: f64) {
@@ -126,9 +157,9 @@ impl ParticleSystem {
             let size_in_bytes = count * std::mem::size_of::<Position>();
             unsafe {
                 gl::BindBufferRange(gl::SHADER_STORAGE_BUFFER, 0, 
-                    self.position_buffer_compute_handle, 0, size_in_bytes as isize);
+                    self.possition_vbo.gl_handle(), 0, size_in_bytes as isize);
                 gl::BindBufferRange(gl::SHADER_STORAGE_BUFFER, 1, 
-                    self.velocity_buffer_compute_handle, 0, size_in_bytes as isize);
+                    self.velocity_vbo.gl_handle(), 0, size_in_bytes as isize);
 
                 gl::DispatchCompute(self.compute_shader_work_groups[0], self.compute_shader_work_groups[1], self.compute_shader_work_groups[2]);
                 gl::MemoryBarrier(gl::VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
@@ -139,24 +170,9 @@ impl ParticleSystem {
         self.compute_shader_program.stop_use();
     }
 
-    fn allocate_buffer(buffer_type: gl::types::GLenum, data: *const std::os::raw::c_void, size: isize) -> u32 {
-        let mut buffer_object = 0u32;
-        
-        unsafe {
-            gl::GenBuffers(1, &mut buffer_object);
-
-            gl::BindBuffer(buffer_type, buffer_object);
-
-            gl::BufferData(buffer_type, size, data, gl::STATIC_DRAW);
-
-            gl::BindBuffer(buffer_type, 0);
-        }
-
-        buffer_object
-    }
 
 
-    pub fn render(&mut self, cam: &Camera) {
+    pub fn render_particles(&mut self, cam: &Camera) {
 
         self.draw_shader_program.start_use();
 
@@ -168,11 +184,41 @@ impl ParticleSystem {
         self.draw_shader_program.set_uniform_matrix4("proj_from_view", cam.proj_from_view.as_ref());
 
         unsafe {
-            gl::BindVertexArray(self.draw_vao_handle);
+           self.draw_vao.bind();
             gl::DrawArrays(gl::POINTS, 0, self.particle_pos.len() as i32);
-            gl::BindVertexArray(0);
+            self.draw_vao.unbind();
         }    
-
         self.draw_shader_program.stop_use();
+    }
+
+    pub fn render(&mut self, cam: &Camera) {
+        
+        //First pass
+        self.frame_buffer.bind();
+        unsafe { 
+            gl::Viewport(0, 0, 1600, 900);
+            gl::ClearColor(0.2, 0.2, 0.2, 1.0);
+            gl::Enable(gl::DEPTH_TEST);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); 
+        }
+        self.render_particles(cam);    
+        self.frame_buffer.unbind();
+
+        //Second pass
+        unsafe{ 
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            gl::ClearColor(1.0, 1.0, 1.0, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+
+        self.screen_program.start_use();
+        unsafe {
+            self.screen_vao.bind();
+            gl::Disable(gl::DEPTH_TEST);
+            gl::BindTexture(gl::TEXTURE_2D, self.frame_buffer.get_texture_color_buffer());
+            gl::DrawArrays(gl::TRIANGLES, 0, 6);
+            self.screen_vao.unbind();
+        }
+        self.screen_program.stop_use();
     }
 }
