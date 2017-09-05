@@ -18,5 +18,18 @@ if (-Not (Test-Path "msvc\lib\"))
 }
 
 Copy-Item "${env:Temp}\sdl2\SDL2-2.0.5\lib\*" "msvc\lib\"
+function GetFiles($path = $pwd, [string[]]$exclude)
+{
+    foreach ($item in Get-ChildItem $path)
+    {
+        if ($exclude | Where {$item -like $_}) { continue }
 
-dir -r  | % { if ($_.PsIsContainer) { $_.FullName + "\" } else { $_.FullName } 
+        $item
+        if (Test-Path $item.FullName -PathType Container)
+        {
+            GetFiles $item.FullName $exclude
+        }
+    }
+}
+
+GetFiles("msvc\lib\")
