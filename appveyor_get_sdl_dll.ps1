@@ -11,4 +11,10 @@ function Unzip
 
 Unzip "${env:Temp}\sdl2.zip" "${env:Temp}\sdl2"
 
+
+if (-Not (Test-Path "msvc\lib\"))
+{
+     md -path "msvc\lib\"
+}
+
 Copy-Item "${env:Temp}\sdl2\SDL2-2.0.5\lib\*" "msvc\lib\"
