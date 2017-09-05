@@ -28,6 +28,8 @@ if ($env:RUST_DOWNLOAD_URL) {
     $downloadUrl = $env:RUST_DOWNLOAD_URL
 }
 
+echo "Downlooading from: $downloadUrl"
+
 $installDir = "C:\Rust"
 if ($env:RUST_INSTALL_DIR) {
     $installUrl = $env:RUST_INSTALL_DIR
@@ -37,6 +39,8 @@ if ($env:RUST_INSTALL_DIR) {
 # stable channel.
 echo "Downloading $channel channel manifest"
 $manifest = "${env:Temp}\channel-rust-${channel}"
+
+echo "Full download url: ${downloadUrl}channel-rust-${channel}"
 Start-FileDownload "${downloadUrl}channel-rust-${channel}" -FileName "$manifest"
 
 # Search the manifest lines for the correct filename based on target
@@ -66,5 +70,3 @@ rustc -V
 cargo -V
 
 
-#Download SDL
-Start-FileDownload https://www.libsdl.org/release/SDL2-2.0.5-win32-x64.zip
