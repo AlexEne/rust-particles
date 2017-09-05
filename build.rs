@@ -22,7 +22,7 @@ fn main() {
             dll_dir.push("x64");
         }
         else {
-            lib_dir.push("x64");
+            lib_dir.push("x86");
             dll_dir.push("x86");
         }
         println!("cargo:rustc-link-search=all={}", lib_dir.display());
