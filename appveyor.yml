@@ -41,10 +41,6 @@ matrix:
 
 ## Install Script ##
 install:
-#- ps: .\appveyor_rust_install.ps1
-
-#Alternative install command for simple configurations without build matrix (uncomment line and
-# comment above line):
 - ps: .\appveyor_get_sdl_dll.ps1
 - ps: >-
     If ($Env:TARGET -eq 'x86_64-pc-windows-gnu') {
