@@ -74,10 +74,10 @@ matrix:
     - channel: nightly
 
 # If you only care about stable channel build failures, uncomment the following line:
-    #- channel: beta
+    - channel: beta
 
 # 32-bit MSVC isn't stablized yet, so you may optionally allow failures there (uncomment line):
-    #- target: i686-pc-windows-msvc
+    - target: i686-pc-windows-msvc
 
 ## Install Script ##
 
@@ -96,11 +96,11 @@ matrix:
 #
 # The file appveyor_rust_install.ps1 must exist in the root directory of the repository.
 install:
-- ps: .\appveyor_rust_install.ps1
+#- ps: .\appveyor_rust_install.ps1
 
 #Alternative install command for simple configurations without build matrix (uncomment line and
 # comment above line):
-#- ps: .\appveyor_rust_install.ps1 -channel stable -target x86_64-pc-windows-msvc
+- ps: .\appveyor_rust_install.ps1 -channel stable -target x86_64-pc-windows-msvc
 
 ## Build Script ##
 
