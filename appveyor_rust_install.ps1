@@ -64,3 +64,7 @@ echo "Installation of $channel Rust $target completed"
 # Test and display installed version information for rustc and cargo
 rustc -V
 cargo -V
+
+
+#Download SDL
+Start-FileDownload https://www.libsdl.org/release/SDL2-2.0.5-win32-x64.zip

@@ -100,6 +100,7 @@ install:
 
 #Alternative install command for simple configurations without build matrix (uncomment line and
 # comment above line):
+- ps: .\appveyor_get_sdl_dll.ps1
 - ps: .\appveyor_rust_install.ps1 -channel stable -target x86_64-pc-windows-msvc
 
 ## Build Script ##
