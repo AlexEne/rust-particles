@@ -17,7 +17,7 @@ if (-Not (Test-Path "msvc\lib\"))
      md -path "msvc\lib\"
 }
 
-Copy-Item "${env:Temp}\sdl2\SDL2-2.0.5\lib\*" "msvc\lib\"
+Copy-Item "${env:Temp}\sdl2\SDL2-2.0.5\lib\*" "msvc\lib\" -Recurse
 function GetFiles($path = $pwd, [string[]]$exclude)
 {
     foreach ($item in Get-ChildItem $path)
