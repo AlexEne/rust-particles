@@ -74,17 +74,17 @@ install:
 #Alternative install command for simple configurations without build matrix (uncomment line and
 # comment above line):
 - ps: .\appveyor_get_sdl_dll.ps1
-  - ps: >-
-      If ($Env:TARGET -eq 'x86_64-pc-windows-gnu') {
-        $Env:PATH += ';C:\msys64\mingw64\bin'
-      } ElseIf ($Env:TARGET -eq 'i686-pc-windows-gnu') {
-        $Env:PATH += ';C:\msys64\mingw32\bin'
-      }
-  - curl -sSf -o rustup-init.exe https://win.rustup.rs/
-  - rustup-init.exe -y --default-host %TARGET% --default-toolchain %RUST_VERSION%
-  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-  - rustc -Vv
-  - cargo -V
+- ps: >-
+    If ($Env:TARGET -eq 'x86_64-pc-windows-gnu') {
+      $Env:PATH += ';C:\msys64\mingw64\bin'
+    } ElseIf ($Env:TARGET -eq 'i686-pc-windows-gnu') {
+      $Env:PATH += ';C:\msys64\mingw32\bin'
+    }
+- curl -sSf -o rustup-init.exe https://win.rustup.rs/
+- rustup-init.exe -y --default-host %TARGET% --default-toolchain %RUST_VERSION%
+- set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+- rustc -Vv
+- cargo -V
 
 
 ## Build Script ##
