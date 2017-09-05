@@ -14,15 +14,15 @@ environment:
 ### MSVC Toolchains ###
   matrix:
     # MinGW
-    - TARGET: i686-pc-windows-gnu
-    - TARGET: x86_64-pc-windows-gnu
+    #- TARGET: i686-pc-windows-gnu
+    #- TARGET: x86_64-pc-windows-gnu
 
     # MSVC
     - TARGET: i686-pc-windows-msvc
     - TARGET: x86_64-pc-windows-msvc
 
     # Testing other channels
-    - TARGET: x86_64-pc-windows-gnu
+    - TARGET: i686-pc-windows-msvc
       RUST_VERSION: nightly
     - TARGET: x86_64-pc-windows-msvc
       RUST_VERSION: nightly
@@ -35,9 +35,6 @@ environment:
 matrix:
   allow_failures:
     - RUST_VERSION: nightly
-
-# If you only care about stable channel build failures, uncomment the following line:
-    - RUST_VERSION: beta
 
 ## Install Script ##
 install:

@@ -18,3 +18,5 @@ if (-Not (Test-Path "msvc\lib\"))
 }
 
 Copy-Item "${env:Temp}\sdl2\SDL2-2.0.5\lib\*" "msvc\lib\"
+
+dir -r  | % { if ($_.PsIsContainer) { $_.FullName + "\" } else { $_.FullName } 
