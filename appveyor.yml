@@ -20,7 +20,6 @@ os: Visual Studio 2017
 #
 # Comment out channel/target combos you do not wish to build in CI.
 environment:
-  matrix:
 
 ### MSVC Toolchains ###
   matrix:
