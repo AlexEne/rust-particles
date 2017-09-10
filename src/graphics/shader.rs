@@ -57,7 +57,6 @@ impl ShaderProgram {
                 gl::GetShaderInfoLog(self.gl_handle, 512, &mut error_size, info_log.as_ptr() as _); 
                 println!("Error link failed with error: {:?} for: {:?}",  
                     info_log, self.gl_handle);
-                panic!();               
             }
             else {
                 println!("Linked successfully {}", self.gl_handle);
@@ -156,7 +155,6 @@ impl Shader {
                 gl::GetShaderInfoLog(self.gl_handle, 512, &mut error_size, info_log.as_ptr() as _); 
                 println!("Error compile failed with error: {:?} for: {:?}",  
                     info_log, self.gl_handle);
-                panic!();               
             }            
         }
     }

@@ -89,7 +89,7 @@ void main(void)
 	}
 
 	//Collisions
-	if (false){
+	{
 		//Ground Bounce
 		if(particlePos.y <= 0.01)
 		{

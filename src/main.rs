@@ -19,9 +19,8 @@ use std::os::raw::c_char;
 use camera::Camera;
 use sdl2::keyboard::Scancode;
 
+
 fn render(particle_system: &mut ParticleSystem, cam: &Camera) {
-
-
     particle_system.render(cam);
 
     unsafe {
@@ -47,24 +46,31 @@ pub extern "system" fn debug_callback(
 }
 
 
-fn handle_input(cam: &mut Camera, keyboard_state: sdl2::keyboard::KeyboardState, 
-    dx: i32, dy: i32, dt: f64) {
+fn handle_input(cam: &mut Camera, keyboard_state: &sdl2::keyboard::KeyboardState, 
+    dx: i32, dy: i32, dt: f32) {
     
     cam.angle_pitch -= dy as f32 / 25.0f32;
     cam.angle_yaw += dx as f32 / 25.0f32;
 
+    let distance = 50.0f32 * dt;
+    let mut speed_multiplier = 1.0f32;
+
+    if keyboard_state.is_scancode_pressed(Scancode::LShift) {
+        speed_multiplier *= 3.0;
+    }
+
     if keyboard_state.is_scancode_pressed(Scancode::S) {
-        cam.position.z -= 50.0f32 * dt as f32;
+        cam.position.z -= distance * speed_multiplier;
     }
     else if keyboard_state.is_scancode_pressed(Scancode::W) {
-        cam.position.z += 50.0f32 * dt as f32;
+        cam.position.z += distance * speed_multiplier;
     }
 
     cam.update_matrices();
 }
 
+
 fn main() {
-    
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let gl_attr = video_subsystem.gl_attr();
@@ -99,7 +105,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
-    let mut particle_system = ParticleSystem::new(1024*1024*6);
+    let mut particle_system = ParticleSystem::new(1024*1024*8);
     particle_system.init_graphics_resources([128, 128, 1]);
     
     let mut prev_time = Instant::now();
@@ -119,7 +125,6 @@ fn main() {
                     }
                 }
                 Event::MouseMotion { xrel, yrel, ..} => {
-                    
                     if mouse_state.left() {
                         dx = xrel;
                         dy = yrel;
@@ -134,7 +139,12 @@ fn main() {
         prev_time = time_now;
 
         let keyboard_state = event_pump.keyboard_state();
-        handle_input(&mut cam, keyboard_state, dx, dy, dt_sec);
+        handle_input(&mut cam, &keyboard_state, dx, dy, dt_sec as f32);
+
+        if keyboard_state.is_scancode_pressed(Scancode::LCtrl) 
+            &&  keyboard_state.is_scancode_pressed(Scancode::R) {
+            particle_system.load_shaders();
+        }
 
         if pause_dt {
             dt_sec = 0.0

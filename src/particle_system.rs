@@ -13,7 +13,7 @@ use graphics::vao::VertexArrayObj;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-struct Position {
+struct Vec4 {
     x: f32,
     y: f32,
     z: f32,
@@ -22,17 +22,20 @@ struct Position {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-struct Velocity {
+struct Vec3 {
     x: f32,
     y: f32,
-    z: f32,
-    w: f32
+    z: f32
 }
 
+struct ColliderData {
+    sphere_radius: [f32; 20],
+    sphere_positions: [Vec3; 20]
+}
 
 pub struct ParticleSystem {
-    particle_pos: Vec<Position>,
-    particle_vel: Vec<Velocity>,
+    particle_pos: Vec<Vec4>,
+    particle_vel: Vec<Vec4>,
     draw_shader_program: ShaderProgram,
     compute_shader_program: ShaderProgram,
     now: std::time::Instant,
@@ -43,7 +46,8 @@ pub struct ParticleSystem {
     compute_shader_work_groups: [u32; 3],
     frame_buffer: FrameBuffer,
     screen_program: ShaderProgram,
-    fullscreen_quad_vbo: VertexBufferObj
+    fullscreen_quad_vbo: VertexBufferObj,
+    collider_data: ColliderData
 }
 
 impl ParticleSystem {
@@ -61,7 +65,8 @@ impl ParticleSystem {
             compute_shader_work_groups: [0, 0, 0],
             frame_buffer: FrameBuffer::new(1600, 900),
             screen_program: ShaderProgram::new(),
-            fullscreen_quad_vbo: VertexBufferObj::new()
+            fullscreen_quad_vbo: VertexBufferObj::new(),
+            collider_data: ColliderData::new()
         };
 
         let mut rng = rand::thread_rng();
@@ -71,7 +76,7 @@ impl ParticleSystem {
         system.particle_vel.reserve(particle_count);
 
         for _ in 0..particle_count {
-            let particle = Position {
+            let particle = Vec4 {
                 x : range.ind_sample(&mut rng),
                 y : range.ind_sample(&mut rng),
                 z : range.ind_sample(&mut rng),
@@ -79,7 +84,7 @@ impl ParticleSystem {
             };
 
             system.particle_pos.push(particle);
-            system.particle_vel.push(Velocity{x: 0.0, y: 0.0, z: 0.0, w:0.0});
+            system.particle_vel.push(Vec4{x: 0.0, y: 0.0, z: 0.0, w:0.0});
         }
 
         system
@@ -114,6 +119,12 @@ impl ParticleSystem {
 
         self.velocity_vbo.set_buffer_data_from_raw_ptr(self.particle_vel.as_ptr() as *const _, size as isize);
 
+        self.load_shaders();
+    }
+
+    pub fn load_shaders(&mut self) {
+        println!("Loading shaders!");
+
         let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
         vertex_shader.compile();
 
@@ -123,6 +134,7 @@ impl ParticleSystem {
         let mut geometry_shader = Shader::new(ShaderType::Geometry, "shaders/geometry_shader.g.glsl");
         geometry_shader.compile();
 
+        self.draw_shader_program = ShaderProgram::new();
         self.draw_shader_program.attach_shader(&vertex_shader);
         self.draw_shader_program.attach_shader(&fragment_shader);
         self.draw_shader_program.attach_shader(&geometry_shader);
@@ -131,6 +143,7 @@ impl ParticleSystem {
         let mut compute_shader = Shader::new(ShaderType::Compute, "shaders/compute_shader.c.glsl");
         compute_shader.compile();
 
+        self.compute_shader_program = ShaderProgram::new();
         self.compute_shader_program.attach_shader(&compute_shader);
         self.compute_shader_program.link();
 
@@ -140,6 +153,7 @@ impl ParticleSystem {
         let mut fragment_shader = Shader::new(ShaderType::Fragment, "shaders/copy_texture_to_quad.p.glsl");
         fragment_shader.compile();
 
+        self.screen_program = ShaderProgram::new();
         self.screen_program.attach_shader(&vertex_shader);
         self.screen_program.attach_shader(&fragment_shader);
         self.screen_program.link();
@@ -154,14 +168,21 @@ impl ParticleSystem {
             let count = self.particle_pos.len();
             self.compute_shader_program.set_uniform_1i("g_NumParticles", count as i32);
 
-            let size_in_bytes = count * std::mem::size_of::<Position>();
+            self.compute_shader_program.set_uniform_1fv("sphereRadius", 20, &self.collider_data.sphere_radius);
+            unsafe {
+                let sphere_positions_buffer = std::slice::from_raw_parts(self.collider_data.sphere_positions.as_ptr() as *const f32, 60);
+                self.compute_shader_program.set_uniform_3fv("sphereOffsets", 20, sphere_positions_buffer);
+            }
+            
+            let size_in_bytes = count * std::mem::size_of::<Vec4>();
             unsafe {
                 gl::BindBufferRange(gl::SHADER_STORAGE_BUFFER, 0, 
                     self.possition_vbo.gl_handle(), 0, size_in_bytes as isize);
                 gl::BindBufferRange(gl::SHADER_STORAGE_BUFFER, 1, 
                     self.velocity_vbo.gl_handle(), 0, size_in_bytes as isize);
 
-                gl::DispatchCompute(self.compute_shader_work_groups[0], self.compute_shader_work_groups[1], self.compute_shader_work_groups[2]);
+                gl::DispatchCompute(self.compute_shader_work_groups[0], 
+                    self.compute_shader_work_groups[1], self.compute_shader_work_groups[2]);
                 gl::MemoryBarrier(gl::VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, 0);
             }
@@ -169,8 +190,6 @@ impl ParticleSystem {
         }
         self.compute_shader_program.stop_use();
     }
-
-
 
     pub fn render_particles(&mut self, cam: &Camera) {
 
@@ -220,5 +239,29 @@ impl ParticleSystem {
             self.screen_vao.unbind();
         }
         self.screen_program.stop_use();
+    }
+}
+
+
+impl ColliderData {
+    fn new() -> ColliderData {
+        let mut colider_data = ColliderData {
+            sphere_positions: [Vec3{x: 0.0, y: 0.0, z: 0.0}; 20],
+            sphere_radius: [0.0; 20]
+        };
+
+        let mut rng = rand::thread_rng();
+        let position_range = Range::new(-1000.0, 1000.0);
+        let radius_range = Range::new(100, 400);
+
+        for i in 0 .. 20 {
+            let pos = &mut colider_data.sphere_positions[i];
+            pos.x = position_range.ind_sample(&mut rng) as f32;
+            pos.y = 0.0;
+            pos.z = position_range.ind_sample(&mut rng) as f32;
+            colider_data.sphere_radius[i] = radius_range.ind_sample(&mut rng) as f32;
+        }
+
+        colider_data
     }
 }
