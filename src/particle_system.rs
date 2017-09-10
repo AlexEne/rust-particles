@@ -216,7 +216,7 @@ impl ParticleSystem {
         self.frame_buffer.bind();
         unsafe { 
             gl::Viewport(0, 0, 1600, 900);
-            gl::ClearColor(0.2, 0.2, 0.2, 1.0);
+            gl::ClearColor(0.003, 0.003, 0.003, 1.0);
             gl::Enable(gl::DEPTH_TEST);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); 
         }
