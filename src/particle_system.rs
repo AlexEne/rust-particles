@@ -234,8 +234,13 @@ impl ParticleSystem {
         unsafe {
             self.screen_vao.bind();
             gl::Disable(gl::DEPTH_TEST);
-            gl::BindTexture(gl::TEXTURE_2D, self.frame_buffer.get_texture_color_buffer());
+
+            let color_buffer = self.frame_buffer.get_texture_color_buffer();
+            color_buffer.bind();
+
             gl::DrawArrays(gl::TRIANGLES, 0, 6);
+            
+            color_buffer.unbind();
             self.screen_vao.unbind();
         }
         self.screen_program.stop_use();
