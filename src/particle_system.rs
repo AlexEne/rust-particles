@@ -214,12 +214,21 @@ impl ParticleSystem {
         
         //First pass
         self.frame_buffer.bind();
-        unsafe { 
+        unsafe {
             gl::Viewport(0, 0, 1600, 900);
-            gl::ClearColor(0.003, 0.003, 0.003, 1.0);
             gl::Enable(gl::DEPTH_TEST);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); 
+            
+            let attachments: [u32; 2] = [gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1];
+            gl::DrawBuffers(2, attachments.as_ptr() as * const _);
+
+            let color: [f32; 4] = [0.003, 0.003, 0.003, 1.0];
+            let black: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+            gl::ClearBufferfv(gl::COLOR, 0, color.as_ptr() as *const _);
+            gl::ClearBufferfv(gl::COLOR, 1, black.as_ptr() as *const _);
+            //gl::ClearColor(0.003, 0.003, 0.003, 1.0); 
+            gl::Clear(gl::DEPTH_BUFFER_BIT); 
         }
+
         self.render_particles(cam);    
         self.frame_buffer.unbind();
 
@@ -235,7 +244,7 @@ impl ParticleSystem {
             self.screen_vao.bind();
             gl::Disable(gl::DEPTH_TEST);
 
-            let color_buffer = self.frame_buffer.get_texture_color_buffer();
+            let color_buffer = self.frame_buffer.get_color_texture();
             color_buffer.bind();
 
             gl::DrawArrays(gl::TRIANGLES, 0, 6);

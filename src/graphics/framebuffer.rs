@@ -1,11 +1,11 @@
 use gl;
-use std;
 use graphics::texture::Texture;
 use std::ops::Drop;
 
 pub struct FrameBuffer {
     gl_handle: u32,
     color_buffer: Texture,
+    highlights: Texture
 }
 
 
@@ -14,6 +14,7 @@ impl FrameBuffer {
         let mut frame_buffer = FrameBuffer {
             gl_handle: 0,
             color_buffer: Texture::new(width, height),
+            highlights: Texture::new(width, height)
         };
         unsafe {
             gl::GenFramebuffers(1, &mut frame_buffer.gl_handle);
@@ -24,6 +25,14 @@ impl FrameBuffer {
                 gl::COLOR_ATTACHMENT0,
                 gl::TEXTURE_2D,
                 frame_buffer.color_buffer.gl_handle,
+                0,
+            );
+
+            gl::FramebufferTexture2D(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT1,
+                gl::TEXTURE_2D,
+                frame_buffer.highlights.gl_handle,
                 0,
             );
 
@@ -67,8 +76,12 @@ impl FrameBuffer {
         }
     }
 
-    pub fn get_texture_color_buffer(&mut self) -> &mut Texture {
+    pub fn get_color_texture(&mut self) -> &mut Texture {
         &mut self.color_buffer
+    }
+
+    pub fn get_highlights_texture(&mut self) -> &mut Texture {
+        &mut self.highlights
     }
 }
 
