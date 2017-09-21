@@ -2,7 +2,9 @@ use rand::distributions::{IndependentSample, Range};
 use rand;
 use gl;
 use std;
+use shader;
 use shader::Shader;
+use shader::ShaderInputData;
 use shader::ShaderProgram;
 use shader::ShaderType;
 use graphics::framebuffer::FrameBuffer;
@@ -45,6 +47,8 @@ pub struct ParticleSystem {
     screen_vao: VertexArrayObj,
     compute_shader_work_groups: [u32; 3],
     frame_buffer: FrameBuffer,
+    blur_frame_buffers: [FrameBuffer; 2],
+    blur_shader: ShaderProgram,
     screen_program: ShaderProgram,
     fullscreen_quad_vbo: VertexBufferObj,
     collider_data: ColliderData
@@ -64,7 +68,9 @@ impl ParticleSystem {
             screen_vao: VertexArrayObj::new(),
             compute_shader_work_groups: [0, 0, 0],
             frame_buffer: FrameBuffer::new(1600, 900),
+            blur_frame_buffers: [FrameBuffer::new(1600, 900), FrameBuffer::new(1600, 900)],
             screen_program: ShaderProgram::new(),
+            blur_shader: ShaderProgram::new(),
             fullscreen_quad_vbo: VertexBufferObj::new(),
             collider_data: ColliderData::new()
         };
@@ -125,43 +131,27 @@ impl ParticleSystem {
     pub fn load_shaders(&mut self) {
         println!("Loading shaders!");
 
-        let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl");
-        vertex_shader.compile();
+        let input = [ShaderInputData::new(ShaderType::Vertex, "shaders/vertex_shader.v.glsl"),
+            ShaderInputData::new(ShaderType::Fragment, "shaders/pixel_shader.p.glsl"),
+            ShaderInputData::new(ShaderType::Geometry, "shaders/geometry_shader.g.glsl")];
+        self.draw_shader_program = shader::create_shader_from(&input);
 
-        let mut fragment_shader = Shader::new(ShaderType::Fragment, "shaders/pixel_shader.p.glsl");
-        fragment_shader.compile();
+        let input = [ShaderInputData::new(ShaderType::Compute, "shaders/compute_shader.c.glsl")];
+        self.compute_shader_program = shader::create_shader_from(&input);
 
-        let mut geometry_shader = Shader::new(ShaderType::Geometry, "shaders/geometry_shader.g.glsl");
-        geometry_shader.compile();
+        let input = [ShaderInputData::new(ShaderType::Vertex, "shaders/fullscreen_quad.v.glsl"),
+            ShaderInputData::new(ShaderType::Fragment, "shaders/copy_texture_to_quad.p.glsl")];
+        self.screen_program = shader::create_shader_from(&input);
 
-        self.draw_shader_program = ShaderProgram::new();
-        self.draw_shader_program.attach_shader(&vertex_shader);
-        self.draw_shader_program.attach_shader(&fragment_shader);
-        self.draw_shader_program.attach_shader(&geometry_shader);
-        self.draw_shader_program.link();
+        let input = [ShaderInputData::new(ShaderType::Vertex, "shaders/fullscreen_quad.v.glsl"),
+            ShaderInputData::new(ShaderType::Fragment, "shaders/blur_shader.p.glsl")];
 
-        let mut compute_shader = Shader::new(ShaderType::Compute, "shaders/compute_shader.c.glsl");
-        compute_shader.compile();
-
-        self.compute_shader_program = ShaderProgram::new();
-        self.compute_shader_program.attach_shader(&compute_shader);
-        self.compute_shader_program.link();
-
-        let mut vertex_shader = Shader::new(ShaderType::Vertex, "shaders/fullscreen_quad.v.glsl");
-        vertex_shader.compile();
-
-        let mut fragment_shader = Shader::new(ShaderType::Fragment, "shaders/copy_texture_to_quad.p.glsl");
-        fragment_shader.compile();
-
-        self.screen_program = ShaderProgram::new();
-        self.screen_program.attach_shader(&vertex_shader);
-        self.screen_program.attach_shader(&fragment_shader);
-        self.screen_program.link();
+        self.blur_shader = shader::create_shader_from(&input);
     }
   
     pub fn update(&mut self, dt: f64) {
 
-        self.compute_shader_program.start_use();
+        self.compute_shader_program.bind();
         {
             self.compute_shader_program.set_uniform_1f("dt", dt as f32);
             
@@ -188,12 +178,12 @@ impl ParticleSystem {
             }
 
         }
-        self.compute_shader_program.stop_use();
+        self.compute_shader_program.unbind();
     }
 
     pub fn render_particles(&mut self, cam: &Camera) {
 
-        self.draw_shader_program.start_use();
+        self.draw_shader_program.bind();
 
         let elapsed = self.now.elapsed().as_milis();
         let colorg = (elapsed % 1000) as f32 / 1000.0f32;
@@ -207,7 +197,7 @@ impl ParticleSystem {
             gl::DrawArrays(gl::POINTS, 0, self.particle_pos.len() as i32);
             self.draw_vao.unbind();
         }    
-        self.draw_shader_program.stop_use();
+        self.draw_shader_program.unbind();
     }
 
     pub fn render(&mut self, cam: &Camera) {
@@ -232,19 +222,57 @@ impl ParticleSystem {
         self.render_particles(cam);    
         self.frame_buffer.unbind();
 
-        //Second pass
+        {
+            self.blur_shader.bind();
+            self.screen_vao.bind();
+            unsafe { 
+                gl::Disable(gl::DEPTH_TEST);
+            }
+
+            //Do the blur
+            let blur_passes = 3;
+            let mut vertical = false;
+            let mut first_pass = true;
+            for _ in 0..blur_passes {
+                let (source, dest) = match vertical {
+                    false => (0, 1),
+                    true => (1, 0)
+                };
+                
+                self.blur_frame_buffers[dest].bind();
+                let mut color_buffer = self.blur_frame_buffers[source].get_color_texture();
+                if first_pass {
+                    color_buffer = self.frame_buffer.get_highlights_texture();
+                    first_pass = false;
+                }
+                color_buffer.bind();
+                
+                unsafe {
+                    gl::DrawArrays(gl::TRIANGLES, 0, 6);
+                }
+
+                color_buffer.unbind();
+                
+                vertical = !vertical;
+            }
+
+            self.screen_vao.unbind();
+            self.blur_shader.unbind();
+        }
+
+        //Final pass
         unsafe{ 
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
             gl::ClearColor(1.0, 1.0, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
-        self.screen_program.start_use();
+        self.screen_program.bind();
         unsafe {
             self.screen_vao.bind();
             gl::Disable(gl::DEPTH_TEST);
 
-            let color_buffer = self.frame_buffer.get_color_texture();
+            let color_buffer = self.blur_frame_buffers[1].get_color_texture();
             color_buffer.bind();
 
             gl::DrawArrays(gl::TRIANGLES, 0, 6);
@@ -252,7 +280,7 @@ impl ParticleSystem {
             color_buffer.unbind();
             self.screen_vao.unbind();
         }
-        self.screen_program.stop_use();
+        self.screen_program.unbind();
     }
 }
 

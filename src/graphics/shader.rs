@@ -6,7 +6,7 @@ use std::io::Read;
 use std::ops::Drop;
 
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum ShaderType {
     Vertex,
     Fragment,
@@ -64,13 +64,13 @@ impl ShaderProgram {
         }
     }
 
-    pub fn start_use(&self) {
+    pub fn bind(&self) {
         unsafe {
             gl::UseProgram(self.gl_handle);
         }
     }
 
-    pub fn stop_use(&self) {
+    pub fn unbind(&self) {
         unsafe { gl::UseProgram(0); }
     }
 
@@ -168,6 +168,32 @@ impl Shader {
         
         file_buf
     }
+}
+
+pub struct ShaderInputData {
+    shader_type: ShaderType,
+    shader_source_file: String
+}
+
+impl ShaderInputData {
+    pub fn new(shader_type: ShaderType, shader_source_file: &str) -> ShaderInputData {
+        ShaderInputData{
+            shader_type: shader_type,
+            shader_source_file: shader_source_file.to_string()
+        }
+    }
+}
+
+pub fn create_shader_from(input: &[ShaderInputData]) -> ShaderProgram {
+    let mut result = ShaderProgram::new();
+    for field in input {
+        let mut shader = Shader::new(field.shader_type, &field.shader_source_file);
+        shader.compile();
+        result.attach_shader(&shader);
+    }
+    
+    result.link();
+    result
 }
 
 
