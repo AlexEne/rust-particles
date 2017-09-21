@@ -230,7 +230,7 @@ impl ParticleSystem {
             }
 
             //Do the blur
-            let blur_passes = 3;
+            let blur_passes = 5;
             let mut vertical = false;
             let mut first_pass = true;
             for _ in 0..blur_passes {
@@ -246,7 +246,7 @@ impl ParticleSystem {
                     first_pass = false;
                 }
                 color_buffer.bind();
-                
+                self.blur_shader.set_uniform_1i("vertical", vertical as i32);
                 unsafe {
                     gl::DrawArrays(gl::TRIANGLES, 0, 6);
                 }
@@ -271,9 +271,16 @@ impl ParticleSystem {
         unsafe {
             self.screen_vao.bind();
             gl::Disable(gl::DEPTH_TEST);
+            self.screen_program.set_uniform_1i("screenTexture", 0);
+            self.screen_program.set_uniform_1i("bloom", 1);
 
-            let color_buffer = self.blur_frame_buffers[1].get_color_texture();
+            let color_buffer = self.frame_buffer.get_color_texture();
+            gl::ActiveTexture(gl::TEXTURE0);
             color_buffer.bind();
+
+            let blured_texture = self.blur_frame_buffers[1].get_color_texture();
+            gl::ActiveTexture(gl::TEXTURE1);
+            blured_texture.bind();
 
             gl::DrawArrays(gl::TRIANGLES, 0, 6);
             
