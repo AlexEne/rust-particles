@@ -66,7 +66,7 @@ void main(void)
 	
 	// We could recycle this particle since it's life is over. ( not used now )
 	// For now, recycle the particle if we touched the ground of if our speed is too small.
-	if ( particlePos.y <= 0.001 )
+	if ( particlePos.y <= 0.001 || ( particlePos.y < 450.0 && length(newParticleVelocity) < 12.2) )
 	{
 		float rand1 = rand(particlePos.xz);
 		float rand2 = rand(particlePos.zx);
