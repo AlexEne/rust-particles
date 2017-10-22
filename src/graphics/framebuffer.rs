@@ -5,7 +5,7 @@ use std::ops::Drop;
 pub struct FrameBuffer {
     gl_handle: u32,
     color_buffer: Texture,
-    highlights: Texture
+    highlights: Texture,
 }
 
 
@@ -14,7 +14,7 @@ impl FrameBuffer {
         let mut frame_buffer = FrameBuffer {
             gl_handle: 0,
             color_buffer: Texture::new(width, height),
-            highlights: Texture::new(width, height)
+            highlights: Texture::new(width, height),
         };
         unsafe {
             gl::GenFramebuffers(1, &mut frame_buffer.gl_handle);

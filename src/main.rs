@@ -1,7 +1,7 @@
-extern crate sdl2;
+extern crate cgmath;
 extern crate gl;
 extern crate rand;
-extern crate cgmath;
+extern crate sdl2;
 
 mod particle_system;
 mod graphics;
@@ -31,24 +31,34 @@ fn render(particle_system: &mut ParticleSystem, cam: &Camera) {
 
 #[no_mangle]
 pub extern "system" fn debug_callback(
-        _: gl::types::GLenum,
-        err_type: gl::types::GLenum,
-        id: gl::types::GLuint,
-        severity: gl::types::GLenum,
-        _: gl::types::GLsizei,
-        message: *const c_char,
-        _: *mut c_void) {
-
-    unsafe{
+    _: gl::types::GLenum,
+    err_type: gl::types::GLenum,
+    id: gl::types::GLuint,
+    severity: gl::types::GLenum,
+    _: gl::types::GLsizei,
+    message: *const c_char,
+    _: *mut c_void,
+) {
+    unsafe {
         let err_text = std::ffi::CStr::from_ptr(message);
-        println!("Type: {:#x} ID: {:#x} Severity: {:#x}:\n  {:#?}", err_type, id, severity, err_text.to_str().unwrap())
+        println!(
+            "Type: {:#x} ID: {:#x} Severity: {:#x}:\n  {:#?}",
+            err_type,
+            id,
+            severity,
+            err_text.to_str().unwrap()
+        )
     }
 }
 
 
-fn handle_input(cam: &mut Camera, keyboard_state: &sdl2::keyboard::KeyboardState, 
-    dx: i32, dy: i32, dt: f32) {
-    
+fn handle_input(
+    cam: &mut Camera,
+    keyboard_state: &sdl2::keyboard::KeyboardState,
+    dx: i32,
+    dy: i32,
+    dt: f32,
+) {
     cam.angle_pitch -= dy as f32 / 25.0f32;
     cam.angle_yaw += dx as f32 / 25.0f32;
 
@@ -61,8 +71,7 @@ fn handle_input(cam: &mut Camera, keyboard_state: &sdl2::keyboard::KeyboardState
 
     if keyboard_state.is_scancode_pressed(Scancode::S) {
         cam.position.z -= distance * speed_multiplier;
-    }
-    else if keyboard_state.is_scancode_pressed(Scancode::W) {
+    } else if keyboard_state.is_scancode_pressed(Scancode::W) {
         cam.position.z += distance * speed_multiplier;
     }
 
@@ -83,7 +92,8 @@ fn main() {
 
     gl_attr.set_context_version(4, 3);
 
-    let window = video_subsystem.window("Rust SDL window", 1600, 900)
+    let window = video_subsystem
+        .window("Rust SDL window", 1600, 900)
         .position_centered()
         .opengl()
         .build()
@@ -93,11 +103,11 @@ fn main() {
     println!("Started with GL version: {:?}", gl_attr.context_version());
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
-    unsafe { 
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA); 
+    unsafe {
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
 
-        gl::DebugMessageCallback(debug_callback, std::ptr::null()) 
+        gl::DebugMessageCallback(debug_callback, std::ptr::null())
     };
 
     video_subsystem.gl_set_swap_interval(1);
@@ -105,9 +115,9 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     unsafe { println!("OpenGL version is {:?}", gl::GetString(gl::VERSION)) };
-    let mut particle_system = ParticleSystem::new(1024*1024*8);
+    let mut particle_system = ParticleSystem::new(1024 * 1024 * 8);
     particle_system.init_graphics_resources([128, 128, 1]);
-    
+
     let mut prev_time = Instant::now();
 
     'running: loop {
@@ -116,20 +126,18 @@ fn main() {
         let mut dy = 0;
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit {..} | Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
-                    break 'running
+                Event::Quit { .. } |
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
+                Event::TextInput { text, .. } => if text == " " {
+                    pause_dt = !pause_dt;
                 },
-                Event::TextInput { text, ..} => {
-                    if text == " " {
-                        pause_dt = !pause_dt;
-                    }
-                }
-                Event::MouseMotion { xrel, yrel, ..} => {
-                    if mouse_state.left() {
-                        dx = xrel;
-                        dy = yrel;
-                    }
-                }
+                Event::MouseMotion { xrel, yrel, .. } => if mouse_state.left() {
+                    dx = xrel;
+                    dy = yrel;
+                },
                 _ => {}
             }
         }
@@ -141,8 +149,9 @@ fn main() {
         let keyboard_state = event_pump.keyboard_state();
         handle_input(&mut cam, &keyboard_state, dx, dy, dt_sec as f32);
 
-        if keyboard_state.is_scancode_pressed(Scancode::LCtrl) 
-            &&  keyboard_state.is_scancode_pressed(Scancode::R) {
+        if keyboard_state.is_scancode_pressed(Scancode::LCtrl)
+            && keyboard_state.is_scancode_pressed(Scancode::R)
+        {
             particle_system.load_shaders();
         }
 
@@ -151,11 +160,10 @@ fn main() {
         }
 
         particle_system.update(dt_sec);
-        
+
         render(&mut particle_system, &cam);
         window.gl_swap_window();
     }
-
 }
 
 
@@ -171,6 +179,6 @@ impl Miliseconds for std::time::Duration {
     }
 
     fn as_secs_f64(&self) -> f64 {
-         self.as_secs() as f64 + self.subsec_nanos() as f64 * 1e-9
+        self.as_secs() as f64 + self.subsec_nanos() as f64 * 1e-9
     }
 }

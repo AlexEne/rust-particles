@@ -3,7 +3,6 @@ use rand;
 use gl;
 use std;
 use shader;
-use shader::Shader;
 use shader::ShaderInputData;
 use shader::ShaderProgram;
 use shader::ShaderType;
