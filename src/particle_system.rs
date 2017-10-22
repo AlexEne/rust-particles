@@ -40,7 +40,7 @@ pub struct ParticleSystem {
     particle_vel: Vec<Vec4>,
     draw_shader_program: ShaderProgram,
     compute_shader_program: ShaderProgram,
-    now: std::time::Instant,
+    start: std::time::Instant,
     possition_vbo: VertexBufferObj,
     velocity_vbo: VertexBufferObj,
     draw_vao: VertexArrayObj,
@@ -61,7 +61,7 @@ impl ParticleSystem {
             particle_vel: Vec::with_capacity(particle_count),
             draw_shader_program: ShaderProgram::new(),
             compute_shader_program: ShaderProgram::new(),
-            now: std::time::Instant::now(),
+            start: std::time::Instant::now(),
             possition_vbo: VertexBufferObj::new(),
             velocity_vbo: VertexBufferObj::new(),
             draw_vao: VertexArrayObj::new(),
@@ -185,7 +185,7 @@ impl ParticleSystem {
 
         self.draw_shader_program.bind();
 
-        let elapsed = self.now.elapsed().as_milis();
+        let elapsed = self.start.elapsed().as_milis();
         let colorg = (elapsed % 1000) as f32 / 1000.0f32;
         self.draw_shader_program.set_uniform4f("vtx_color", &[0.3, colorg, 0.3, 1.0]);
         
