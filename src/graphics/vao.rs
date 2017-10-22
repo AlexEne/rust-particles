@@ -6,7 +6,7 @@ use std;
 //Is that even possible?
 #[derive(Debug, Default)]
 pub struct VertexArrayObj {
-    gl_handle: u32
+    gl_handle: u32,
 }
 
 
@@ -17,9 +17,7 @@ pub struct VertexBufferObj {
 
 impl VertexBufferObj {
     pub fn new() -> VertexBufferObj {
-        let mut vbo = VertexBufferObj{
-            gl_handle: 0
-        };
+        let mut vbo = VertexBufferObj { gl_handle: 0 };
 
         unsafe {
             gl::GenBuffers(1, &mut vbo.gl_handle);
@@ -32,9 +30,7 @@ impl VertexBufferObj {
         unsafe {
             gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_handle);
 
-            gl::BufferData(gl::ARRAY_BUFFER, 
-                size as isize, 
-                data, gl::STATIC_DRAW);
+            gl::BufferData(gl::ARRAY_BUFFER, size as isize, data, gl::STATIC_DRAW);
         }
     }
 
@@ -42,9 +38,12 @@ impl VertexBufferObj {
         unsafe {
             gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_handle);
 
-            gl::BufferData(gl::ARRAY_BUFFER, 
-                (std::mem::size_of::<f32>() * data.len()) as isize, 
-                data.as_ptr() as *const _, gl::STATIC_DRAW);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (std::mem::size_of::<f32>() * data.len()) as isize,
+                data.as_ptr() as *const _,
+                gl::STATIC_DRAW,
+            );
         }
     }
 
@@ -53,8 +52,14 @@ impl VertexBufferObj {
     pub fn describe_data(&self, location: u32, component_count: i32, stride: usize, offset: usize) {
         unsafe {
             gl::EnableVertexAttribArray(location);
-            gl::VertexAttribPointer(location, component_count, 
-                gl::FLOAT, gl::FALSE, stride as i32, offset as *const _);
+            gl::VertexAttribPointer(
+                location,
+                component_count,
+                gl::FLOAT,
+                gl::FALSE,
+                stride as i32,
+                offset as *const _,
+            );
         }
     }
 
@@ -65,8 +70,8 @@ impl VertexBufferObj {
 
 impl VertexArrayObj {
     pub fn new() -> VertexArrayObj {
-        let mut vao : VertexArrayObj = VertexArrayObj::default();
-        
+        let mut vao: VertexArrayObj = VertexArrayObj::default();
+
         unsafe {
             gl::GenVertexArrays(1, &mut vao.gl_handle);
         }
@@ -75,13 +80,13 @@ impl VertexArrayObj {
     }
 
     pub fn bind(&self) {
-        unsafe { 
+        unsafe {
             gl::BindVertexArray(self.gl_handle);
         }
     }
 
     pub fn unbind(&self) {
-        unsafe { 
+        unsafe {
             gl::BindVertexArray(0);
         }
     }
