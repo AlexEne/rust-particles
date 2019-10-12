@@ -3,7 +3,7 @@ name: Build
 on: [push]
 
 jobs:
-  test_Ubuntu:
+  build_Ubuntu:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +18,7 @@ jobs:
         rustc --version
         cargo build
       
-  test_MacOS:
+  build_MacOS:
 
     runs-on: macOS-latest
     
@@ -35,7 +35,7 @@ jobs:
         cargo build
 
       
-  test_Windows:
+  build_Windows:
     runs-on: windows-latest
     
     steps:
